@@ -8,6 +8,7 @@ from datetime import datetime
 from weather_module import get_weather
 from greetings_module import get_motivational_greeting
 from exchange_module import get_exchange_rates
+from birthday_module import get_birthday_reminder, get_all_birthdays
 
 # Конфигурация бота (используем те же данные)
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
@@ -39,6 +40,15 @@ def test_all_modules():
     print(f"   {exchange_rates}")
     print()
     
+    # Тест дней рождения
+    print("4. Тест дней рождения:")
+    birthday_reminder = get_birthday_reminder()
+    if birthday_reminder:
+        print(f"   {birthday_reminder}")
+    else:
+        print("   Сегодня нет напоминаний о днях рождения")
+    print()
+    
     print("=" * 50)
     print("✅ Все модули протестированы!")
 
@@ -67,17 +77,25 @@ def send_test_message():
     except Exception as e:
         print(f"❌ Ошибка при отправке: {e}")
 
+def show_all_birthdays():
+    """Показывает все дни рождения"""
+    print("📅 Список всех дней рождения:")
+    print("=" * 40)
+    all_birthdays = get_all_birthdays()
+    print(all_birthdays)
+
 def main():
     """Главная функция для выбора действия"""
     print("🤖 Тестовый скрипт для бота-информатора")
     print("=" * 40)
     print("1. Тестировать модули (без отправки)")
     print("2. Отправить тестовое сообщение в Telegram")
-    print("3. Выход")
+    print("3. Показать все дни рождения")
+    print("4. Выход")
     print("=" * 40)
     
     while True:
-        choice = input("Выберите действие (1-3): ").strip()
+        choice = input("Выберите действие (1-4): ").strip()
         
         if choice == "1":
             test_all_modules()
@@ -86,6 +104,9 @@ def main():
             send_test_message()
             print()
         elif choice == "3":
+            show_all_birthdays()
+            print()
+        elif choice == "4":
             print("👋 До свидания!")
             break
         else:
