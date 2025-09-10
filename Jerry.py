@@ -10,6 +10,7 @@ from weather_module import get_weather
 from greetings_module import get_motivational_greeting
 from exchange_module import get_exchange_rates
 from birthday_module import get_birthday_reminder
+from memorial_module import get_memorial_reminder
 
 # Конфигурация бота
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
@@ -24,6 +25,7 @@ def send_morning_message():
     weather = get_weather()
     exchange_rates = get_exchange_rates()
     birthday_reminder = get_birthday_reminder()
+    memorial_reminder = get_memorial_reminder()
     
     # Формируем полное сообщение
     full_message = f"""{greeting}
@@ -35,6 +37,10 @@ def send_morning_message():
     # Добавляем напоминание о дне рождения, если есть
     if birthday_reminder:
         full_message += f"\n\n{birthday_reminder}"
+    
+    # Добавляем напоминание о дне памяти, если есть
+    if memorial_reminder:
+        full_message += f"\n\n{memorial_reminder}"
     
     full_message += "\n\nХорошего дня! 😊"
     

@@ -74,7 +74,7 @@ def get_tomorrow_weather():
         else:
             forecast_mood = "🌡  Завтра погода будет интересной!"
 
-        return f"📅 Завтра в Питере: {int(temp)} °C ({int(temp_min)}°-{int(temp_max)}°), {description}. {forecast_mood}"
+        return f"📅 Завтра в Питере: {int(temp)} °C, {description}. {forecast_mood}"
 
     except Exception as e:
         return f"Не удалось получить прогноз на завтра. Ошибка: {e}"

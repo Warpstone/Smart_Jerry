@@ -45,7 +45,7 @@ def check_birthday_today(month, day):
     return None
 
 def check_upcoming_birthdays(current_month, current_day):
-    """Проверяет предстоящие дни рождения"""
+    """Проверяет предстоящие дни рождения (только за 3 дня и ближе)"""
     today = datetime.now()
     
     for (month, day), name in BIRTHDAYS.items():
@@ -59,7 +59,7 @@ def check_upcoming_birthdays(current_month, current_day):
         else:
             days_until = (birthday_this_year - today).days
         
-        # Проверяем разные случаи
+        # Показываем напоминания только за 3 дня и ближе
         if days_until == 3:
             return f"📅 Через 3 дня день рождения у {name}! Не забудь поздравить!"
         elif days_until == 2:
@@ -68,6 +68,7 @@ def check_upcoming_birthdays(current_month, current_day):
             return f"📅 Послезавтра день рождения у {name}! Последний день для подготовки!"
         elif days_until == 0:
             return f"🎂 Сегодня день рождения у {name}! Поздравь их!"
+        # Если дней больше 3, не показываем напоминание
     
     return None
 
