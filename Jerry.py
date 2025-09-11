@@ -11,6 +11,7 @@ from greetings_module import get_motivational_greeting
 from exchange_module import get_exchange_rates
 from birthday_module import get_birthday_reminder
 from memorial_module import get_memorial_reminder
+from investment_module import get_investment_wisdom
 
 # Конфигурация бота
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
@@ -24,6 +25,7 @@ def send_morning_message():
     greeting = get_motivational_greeting()
     weather = get_weather()
     exchange_rates = get_exchange_rates()
+    investment_wisdom = get_investment_wisdom()
     birthday_reminder = get_birthday_reminder()
     memorial_reminder = get_memorial_reminder()
     
@@ -32,7 +34,9 @@ def send_morning_message():
 
 🌤️ {weather}
 
-{exchange_rates}"""
+{exchange_rates}
+
+{investment_wisdom}"""
     
     # Добавляем напоминание о дне рождения, если есть
     if birthday_reminder:
@@ -44,7 +48,9 @@ def send_morning_message():
     
     full_message += "\n\nХорошего дня! 😊"
     
-    bot.send_message(chat_id=USER_CHAT_ID, text=full_message)
+    # Используем синхронный метод для отправки сообщения
+    import asyncio
+    asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message))
     print(f"[{datetime.now()}] Утреннее сообщение отправлено")
 
 # Планировщик задач

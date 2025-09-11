@@ -10,6 +10,7 @@ from greetings_module import get_motivational_greeting
 from exchange_module import get_exchange_rates
 from birthday_module import get_birthday_reminder, get_all_birthdays
 from memorial_module import get_memorial_reminder, get_all_memorials
+from investment_module import get_investment_wisdom
 
 # Конфигурация бота (используем те же данные)
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
@@ -59,6 +60,12 @@ def test_all_modules():
         print("   Сегодня нет напоминаний о днях памяти (напоминания показываются за 3 дня и ближе)")
     print()
     
+    # Тест инвестиционных мудростей
+    print("6. Тест инвестиционных мудростей:")
+    investment_wisdom = get_investment_wisdom()
+    print(f"   {investment_wisdom}")
+    print()
+    
     print("=" * 50)
     print("✅ Все модули протестированы!")
 
@@ -69,6 +76,7 @@ def send_test_message():
     greeting = get_motivational_greeting()
     weather = get_weather()
     exchange_rates = get_exchange_rates()
+    investment_wisdom = get_investment_wisdom()
     
     # Формируем полное сообщение
     full_message = f"""{greeting}
@@ -77,12 +85,16 @@ def send_test_message():
 
 {exchange_rates}
 
+{investment_wisdom}
+
 Хорошего дня! 😊
 
 🧪 Это тестовое сообщение от {datetime.now().strftime('%H:%M:%S')}"""
     
     try:
-        bot.send_message(chat_id=USER_CHAT_ID, text=full_message)
+        # Используем синхронный метод для отправки сообщения
+        import asyncio
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message))
         print("✅ Тестовое сообщение отправлено успешно!")
     except Exception as e:
         print(f"❌ Ошибка при отправке: {e}")
