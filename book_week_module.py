@@ -7,12 +7,20 @@ import json
 
 # API конфигурация
 GOOGLE_BOOKS_API_URL = "https://www.googleapis.com/books/v1/volumes"
+OPEN_LIBRARY_API_URL = "https://openlibrary.org/search.json"
 
 # Категории для поиска книг
 BOOK_CATEGORIES = [
     "fiction", "business", "psychology", "philosophy", 
     "self-help", "history", "computer science", "technology",
     "biography", "science", "art", "literature"
+]
+
+# Категории для Open Library (используют другой формат)
+OPEN_LIBRARY_SUBJECTS = [
+    "Fiction", "Business", "Psychology", "Philosophy", 
+    "Self-help", "History", "Computer science", "Technology",
+    "Biography", "Science", "Art", "Literature"
 ]
 
 # База данных книг по категориям (fallback)
@@ -195,7 +203,7 @@ def get_books_count():
         total += len(category_books)
     return total
 
-def get_book_from_api(category=None):
+def get_book_from_google_books(category=None):
     """Получает книгу из Google Books API"""
     try:
         # Выбираем случайную категорию, если не указана
@@ -252,27 +260,122 @@ def get_book_from_api(category=None):
         }
         
     except Exception as e:
-        print(f"Ошибка при получении книги из API: {e}")
+        print(f"Ошибка при получении книги из Google Books API: {e}")
+        return None
+
+def get_book_from_open_library(subject=None):
+    """Получает книгу из Open Library API"""
+    try:
+        # Выбираем случайную категорию, если не указана
+        if not subject:
+            subject = random.choice(OPEN_LIBRARY_SUBJECTS)
+        
+        # Параметры запроса (упрощенные для лучшей совместимости)
+        params = {
+            'subject': subject,
+            'limit': 20,
+            'sort': 'new'  # Сортируем по новизне для разнообразия
+        }
+        
+        # Отправляем запрос
+        response = requests.get(OPEN_LIBRARY_API_URL, params=params, timeout=15)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if not data.get('docs') or len(data['docs']) == 0:
+            print(f"Open Library: не найдено книг по категории '{subject}'")
+            return None
+        
+        # Выбираем случайную книгу из результатов
+        book_data = random.choice(data['docs'])
+        
+        # Извлекаем информацию о книге
+        title = book_data.get('title', 'Неизвестная книга')
+        authors = book_data.get('author_name', ['Неизвестный автор'])
+        author = ', '.join(authors) if isinstance(authors, list) else str(authors)
+        
+        # Описание (Open Library часто не имеет описаний)
+        description = book_data.get('first_sentence', ['Описание недоступно'])
+        if isinstance(description, list) and description:
+            description = description[0]
+        elif not description:
+            description = 'Описание недоступно'
+        
+        if len(description) > 300:
+            description = description[:300] + '...'
+        
+        # Рейтинг (Open Library не всегда имеет рейтинги)
+        rating_text = "Нет рейтинга"
+        
+        # Категории
+        subjects = book_data.get('subject', [subject])
+        category_text = subjects[0] if subjects else subject
+        
+        
+        return {
+            'title': title,
+            'author': author,
+            'description': description,
+            'rating': rating_text,
+            'category': category_text,
+            'source': 'Open Library'
+        }
+        
+    except Exception as e:
+        print(f"Ошибка при получении книги из Open Library API: {e}")
         return None
 
 def get_book_of_the_week_with_api():
-    """Возвращает книгу недели, сначала пытается получить из API, потом из локальной базы"""
-    # Сначала пытаемся получить книгу из API
-    api_book = get_book_from_api()
+    """Возвращает книгу недели из случайного источника (локальная база, Google Books, Open Library)"""
+    # Собираем все доступные источники
+    available_sources = []
     
-    if api_book:
-        # Формируем сообщение с книгой из API
-        message = f"""📚 *Книга недели*
+    # Добавляем локальную базу
+    try:
+        local_book = get_book_of_the_week()
+        if local_book:
+            available_sources.append(('local', local_book))
+    except Exception as e:
+        print(f"Ошибка при получении книги из локальной базы: {e}")
+    
+    # Добавляем Google Books API
+    try:
+        google_book = get_book_from_google_books()
+        if google_book:
+            available_sources.append(('google', google_book))
+    except Exception as e:
+        print(f"Ошибка при получении книги из Google Books API: {e}")
+    
+    # Добавляем Open Library API
+    try:
+        open_lib_book = get_book_from_open_library()
+        if open_lib_book:
+            available_sources.append(('open_library', open_lib_book))
+    except Exception as e:
+        print(f"Ошибка при получении книги из Open Library API: {e}")
+    
+    # Если есть доступные источники, выбираем случайный
+    if available_sources:
+        source_type, book_data = random.choice(available_sources)
+        
+        # Формируем сообщение
+        if source_type == 'local':
+            # Для локальной базы используем готовое сообщение
+            return book_data
+        else:
+            # Для API формируем сообщение
+            message = f"""📚 *Книга недели*
 
-*{api_book['title']}* - {api_book['author']}
-*Категория:* {api_book['category']}
-*Рейтинг:* {api_book['rating']}
+*{book_data['title']}* - {book_data['author']}
+*Категория:* {book_data['category']}
+*Рейтинг:* {book_data['rating']}
 
-{api_book['description']}
+{book_data['description']}
 
 💡 Рекомендуем к прочтению!"""
-        
-        return message
+            
+            return message
     
-    # Если API недоступен, используем локальную базу
-    return get_book_of_the_week()
+    # Если ничего не доступно, возвращаем заглушку
+    return "📚 *Книга недели*\n\nК сожалению, сейчас нет доступных рекомендаций. Попробуйте позже!"

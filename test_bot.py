@@ -11,7 +11,7 @@ from exchange_module import get_exchange_rates, get_currency_analysis, get_crypt
 from birthday_module import get_birthday_reminder, get_all_birthdays
 from memorial_module import get_memorial_reminder, get_all_memorials
 from investment_module import get_investment_wisdom
-from book_week_module import get_book_of_the_week, get_book_of_the_week_with_api, get_book_from_api, get_all_categories, get_books_count
+from book_week_module import get_book_of_the_week, get_book_of_the_week_with_api, get_book_from_google_books, get_book_from_open_library, get_all_categories, get_books_count
 
 # Конфигурация бота (используем те же данные)
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
@@ -96,6 +96,7 @@ def test_all_modules():
     book_of_week = get_book_of_the_week_with_api()
     print(f"   {book_of_week}")
     print()
+    
     
     print("=" * 50)
     print("✅ Все модули протестированы!")
