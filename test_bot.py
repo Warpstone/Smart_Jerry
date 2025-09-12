@@ -7,7 +7,7 @@ from datetime import datetime
 # Импорт модулей
 from weather_module import get_weather
 from greetings_module import get_motivational_greeting
-from exchange_module import get_exchange_rates
+from exchange_module import get_exchange_rates, get_currency_analysis, get_crypto_analysis, get_weekly_currency_summary, get_weekly_crypto_summary
 from birthday_module import get_birthday_reminder, get_all_birthdays
 from memorial_module import get_memorial_reminder, get_all_memorials
 from investment_module import get_investment_wisdom
@@ -66,6 +66,30 @@ def test_all_modules():
     print(f"   {investment_wisdom}")
     print()
     
+    # Тест анализа валют
+    print("7. Тест анализа валют:")
+    currency_analysis = get_currency_analysis()
+    print(f"   {currency_analysis}")
+    print()
+    
+    # Тест анализа криптовалют
+    print("8. Тест анализа криптовалют:")
+    crypto_analysis = get_crypto_analysis()
+    print(f"   {crypto_analysis}")
+    print()
+    
+    # Тест еженедельной сводки по валютам
+    print("9. Тест еженедельной сводки по валютам:")
+    weekly_currency = get_weekly_currency_summary()
+    print(f"   {weekly_currency}")
+    print()
+    
+    # Тест еженедельной сводки по криптовалютам
+    print("10. Тест еженедельной сводки по криптовалютам:")
+    weekly_crypto = get_weekly_crypto_summary()
+    print(f"   {weekly_crypto}")
+    print()
+    
     print("=" * 50)
     print("✅ Все модули протестированы!")
 
@@ -76,6 +100,8 @@ def send_test_message():
     greeting = get_motivational_greeting()
     weather = get_weather()
     exchange_rates = get_exchange_rates()
+    currency_analysis = get_currency_analysis()
+    crypto_analysis = get_crypto_analysis()
     investment_wisdom = get_investment_wisdom()
     
     # Формируем полное сообщение
@@ -84,6 +110,10 @@ def send_test_message():
 🌤️ {weather}
 
 {exchange_rates}
+
+{currency_analysis}
+
+{crypto_analysis}
 
 {investment_wisdom}
 
@@ -94,7 +124,7 @@ def send_test_message():
     try:
         # Используем синхронный метод для отправки сообщения
         import asyncio
-        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message))
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown'))
         print("✅ Тестовое сообщение отправлено успешно!")
     except Exception as e:
         print(f"❌ Ошибка при отправке: {e}")
@@ -113,19 +143,52 @@ def show_all_memorials():
     all_memorials = get_all_memorials()
     print(all_memorials)
 
+def send_weekly_test_message():
+    """Отправляет тестовую еженедельную сводку в Telegram"""
+    print("📊 Отправка тестовой еженедельной сводки...")
+    
+    greeting = get_motivational_greeting()
+    weekly_currency_summary = get_weekly_currency_summary()
+    weekly_crypto_summary = get_weekly_crypto_summary()
+    investment_wisdom = get_investment_wisdom()
+    
+    # Формируем еженедельное сообщение
+    weekly_message = f"""{greeting}
+
+📊 *ЕЖЕНЕДЕЛЬНАЯ СВОДКА ПО РЫНКУ*
+
+{weekly_currency_summary}
+
+{weekly_crypto_summary}
+
+{investment_wisdom}
+
+Хорошего воскресенья! 😊
+
+🧪 Это тестовая еженедельная сводка от {datetime.now().strftime('%H:%M:%S')}"""
+    
+    try:
+        # Используем синхронный метод для отправки сообщения
+        import asyncio
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown'))
+        print("✅ Тестовая еженедельная сводка отправлена успешно!")
+    except Exception as e:
+        print(f"❌ Ошибка при отправке: {e}")
+
 def main():
     """Главная функция для выбора действия"""
     print("🤖 Тестовый скрипт для бота-информатора")
     print("=" * 40)
     print("1. Тестировать модули (без отправки)")
     print("2. Отправить тестовое сообщение в Telegram")
-    print("3. Показать все дни рождения")
-    print("4. Показать все дни памяти")
-    print("5. Выход")
+    print("3. Отправить тестовую еженедельную сводку в Telegram")
+    print("4. Показать все дни рождения")
+    print("5. Показать все дни памяти")
+    print("6. Выход")
     print("=" * 40)
     
     while True:
-        choice = input("Выберите действие (1-5): ").strip()
+        choice = input("Выберите действие (1-6): ").strip()
         
         if choice == "1":
             test_all_modules()
@@ -134,12 +197,15 @@ def main():
             send_test_message()
             print()
         elif choice == "3":
-            show_all_birthdays()
+            send_weekly_test_message()
             print()
         elif choice == "4":
-            show_all_memorials()
+            show_all_birthdays()
             print()
         elif choice == "5":
+            show_all_memorials()
+            print()
+        elif choice == "6":
             print("👋 До свидания!")
             break
         else:
