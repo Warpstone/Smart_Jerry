@@ -12,6 +12,7 @@ from exchange_module import get_exchange_rates, get_currency_analysis, get_crypt
 from birthday_module import get_birthday_reminder
 from memorial_module import get_memorial_reminder
 from investment_module import get_investment_wisdom
+from book_week_module import get_book_of_the_week_with_api
 
 # Конфигурация бота
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
@@ -31,6 +32,10 @@ def send_morning_message():
     birthday_reminder = get_birthday_reminder()
     memorial_reminder = get_memorial_reminder()
     
+    # Проверяем, воскресенье ли сегодня
+    today = datetime.now()
+    is_sunday = today.weekday() == 6  # 6 = воскресенье
+    
     # Формируем полное сообщение
     full_message = f"""{greeting}
 
@@ -43,6 +48,11 @@ def send_morning_message():
 {crypto_analysis}
 
 {investment_wisdom}"""
+    
+    # Добавляем книгу недели только по воскресеньям
+    if is_sunday:
+        book_of_week = get_book_of_the_week_with_api()
+        full_message += f"\n\n{book_of_week}"
     
     # Добавляем напоминание о дне рождения, если есть
     if birthday_reminder:

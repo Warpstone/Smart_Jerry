@@ -11,6 +11,7 @@ from exchange_module import get_exchange_rates, get_currency_analysis, get_crypt
 from birthday_module import get_birthday_reminder, get_all_birthdays
 from memorial_module import get_memorial_reminder, get_all_memorials
 from investment_module import get_investment_wisdom
+from book_week_module import get_book_of_the_week, get_book_of_the_week_with_api, get_book_from_api, get_all_categories, get_books_count
 
 # Конфигурация бота (используем те же данные)
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
@@ -88,6 +89,12 @@ def test_all_modules():
     print("10. Тест еженедельной сводки по криптовалютам:")
     weekly_crypto = get_weekly_crypto_summary()
     print(f"   {weekly_crypto}")
+    print()
+    
+    # Тест книги недели
+    print("11. Тест книги недели:")
+    book_of_week = get_book_of_the_week_with_api()
+    print(f"   {book_of_week}")
     print()
     
     print("=" * 50)
@@ -175,6 +182,43 @@ def send_weekly_test_message():
     except Exception as e:
         print(f"❌ Ошибка при отправке: {e}")
 
+def show_books_info():
+    """Показывает информацию о базе книг"""
+    print("📚 Информация о базе книг:")
+    print("=" * 40)
+    categories = get_all_categories()
+    total_books = get_books_count()
+    
+    print(f"📖 Всего книг в базе: {total_books}")
+    print(f"📂 Категории ({len(categories)}):")
+    for category in categories:
+        print(f"   • {category.title()}")
+    print()
+
+def send_book_test_message():
+    """Отправляет тестовое сообщение с книгой недели в Telegram"""
+    print("📚 Отправка тестового сообщения с книгой недели...")
+    
+    greeting = get_motivational_greeting()
+    book_of_week = get_book_of_the_week_with_api()  # Используем версию с API
+    
+    # Формируем сообщение с книгой недели
+    book_message = f"""{greeting}
+
+{book_of_week}
+
+Хорошего дня! 😊
+
+🧪 Это тестовое сообщение с книгой недели от {datetime.now().strftime('%H:%M:%S')}"""
+    
+    try:
+        # Используем синхронный метод для отправки сообщения
+        import asyncio
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=book_message, parse_mode='Markdown'))
+        print("✅ Тестовое сообщение с книгой недели отправлено успешно!")
+    except Exception as e:
+        print(f"❌ Ошибка при отправке: {e}")
+
 def main():
     """Главная функция для выбора действия"""
     print("🤖 Тестовый скрипт для бота-информатора")
@@ -182,13 +226,15 @@ def main():
     print("1. Тестировать модули (без отправки)")
     print("2. Отправить тестовое сообщение в Telegram")
     print("3. Отправить тестовую еженедельную сводку в Telegram")
-    print("4. Показать все дни рождения")
-    print("5. Показать все дни памяти")
-    print("6. Выход")
+    print("4. Отправить тестовое сообщение с книгой недели в Telegram")
+    print("5. Показать все дни рождения")
+    print("6. Показать все дни памяти")
+    print("7. Показать информацию о базе книг")
+    print("8. Выход")
     print("=" * 40)
     
     while True:
-        choice = input("Выберите действие (1-6): ").strip()
+        choice = input("Выберите действие (1-8): ").strip()
         
         if choice == "1":
             test_all_modules()
@@ -200,12 +246,18 @@ def main():
             send_weekly_test_message()
             print()
         elif choice == "4":
-            show_all_birthdays()
+            send_book_test_message()
             print()
         elif choice == "5":
-            show_all_memorials()
+            show_all_birthdays()
             print()
         elif choice == "6":
+            show_all_memorials()
+            print()
+        elif choice == "7":
+            show_books_info()
+            print()
+        elif choice == "8":
             print("👋 До свидания!")
             break
         else:
