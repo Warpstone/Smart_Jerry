@@ -24,7 +24,7 @@ def get_exchange_rates():
 def get_fiat_rates():
     """Получает курсы обычных валют"""
     try:
-        response = requests.get(EXCHANGE_API_URL)
+        response = requests.get(EXCHANGE_API_URL, timeout=10)
         data = response.json()
         
         # Получаем курсы относительно RUB (рубля)
@@ -53,11 +53,11 @@ def get_crypto_rates():
             'ids': 'bitcoin,ethereum,the-open-network',
             'vs_currencies': 'usd'
         }
-        response = requests.get(CRYPTO_API_URL, params=params)
+        response = requests.get(CRYPTO_API_URL, params=params, timeout=10)
         data = response.json()
         
         # Получаем курс доллара к рублю
-        usd_response = requests.get(EXCHANGE_API_URL)
+        usd_response = requests.get(EXCHANGE_API_URL, timeout=10)
         usd_data = usd_response.json()
         usd_to_rub = 1 / usd_data['rates']['USD']  # Сколько рублей за 1 доллар
         
@@ -141,7 +141,7 @@ def get_crypto_analysis():
             'ids': 'bitcoin,ethereum,the-open-network',
             'vs_currencies': 'usd'
         }
-        response = requests.get(CRYPTO_API_URL, params=params)
+        response = requests.get(CRYPTO_API_URL, params=params, timeout=10)
         data = response.json()
         
         # Симулируем изменения (в реальности это были бы исторические данные)
@@ -237,7 +237,7 @@ def get_weekly_crypto_summary():
             'ids': 'bitcoin,ethereum,the-open-network',
             'vs_currencies': 'usd'
         }
-        response = requests.get(CRYPTO_API_URL, params=params)
+        response = requests.get(CRYPTO_API_URL, params=params, timeout=10)
         data = response.json()
         
         # Симулируем недельные изменения

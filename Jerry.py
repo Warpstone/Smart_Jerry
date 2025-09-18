@@ -23,21 +23,40 @@ bot = Bot(token=TELEGRAM_TOKEN)
 
 def send_morning_message():
     """Отправляет утреннее информационное сообщение в Telegram"""
-    greeting = get_motivational_greeting()
-    weather = get_weather()
-    exchange_rates = get_exchange_rates()
-    currency_analysis = get_currency_analysis()
-    crypto_analysis = get_crypto_analysis()
-    investment_wisdom = get_investment_wisdom()
-    birthday_reminder = get_birthday_reminder()
-    memorial_reminder = get_memorial_reminder()
+    try:
+        print(f"[{datetime.now()}] Начинаю формирование утреннего сообщения...")
+        
+        greeting = get_motivational_greeting()
+        print(f"[{datetime.now()}] Получено приветствие")
+        
+        weather = get_weather()
+        print(f"[{datetime.now()}] Получена погода")
+        
+        exchange_rates = get_exchange_rates()
+        print(f"[{datetime.now()}] Получены курсы валют")
+        
+        currency_analysis = get_currency_analysis()
+        print(f"[{datetime.now()}] Получен анализ валют")
+        
+        crypto_analysis = get_crypto_analysis()
+        print(f"[{datetime.now()}] Получен анализ криптовалют")
+        
+        investment_wisdom = get_investment_wisdom()
+        print(f"[{datetime.now()}] Получена инвестиционная мудрость")
+        
+        birthday_reminder = get_birthday_reminder()
+        print(f"[{datetime.now()}] Проверены дни рождения")
+        
+        memorial_reminder = get_memorial_reminder()
+        print(f"[{datetime.now()}] Проверены дни памяти")
     
-    # Проверяем, воскресенье ли сегодня
-    today = datetime.now()
-    is_sunday = today.weekday() == 6  # 6 = воскресенье
-    
-    # Формируем полное сообщение
-    full_message = f"""{greeting}
+        
+        # Проверяем, воскресенье ли сегодня
+        today = datetime.now()
+        is_sunday = today.weekday() == 6  # 6 = воскресенье
+        
+        # Формируем полное сообщение
+        full_message = f"""{greeting}
 
 🌤️ {weather}
 
@@ -48,36 +67,61 @@ def send_morning_message():
 {crypto_analysis}
 
 {investment_wisdom}"""
-    
-    # Добавляем книгу недели только по воскресеньям
-    if is_sunday:
-        book_of_week = get_book_of_the_week_with_api()
-        full_message += f"\n\n{book_of_week}"
-    
-    # Добавляем напоминание о дне рождения, если есть
-    if birthday_reminder:
-        full_message += f"\n\n{birthday_reminder}"
-    
-    # Добавляем напоминание о дне памяти, если есть
-    if memorial_reminder:
-        full_message += f"\n\n{memorial_reminder}"
-    
-    full_message += "\n\nХорошего дня! 😊"
-    
-    # Используем синхронный метод для отправки сообщения
-    import asyncio
-    asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown'))
-    print(f"[{datetime.now()}] Утреннее сообщение отправлено")
+        
+        # Добавляем книгу недели только по воскресеньям
+        if is_sunday:
+            try:
+                print(f"[{datetime.now()}] Получаю книгу недели...")
+                book_of_week = get_book_of_the_week_with_api()
+                full_message += f"\n\n{book_of_week}"
+                print(f"[{datetime.now()}] Книга недели получена")
+            except Exception as e:
+                print(f"[{datetime.now()}] Ошибка при получении книги недели: {e}")
+                full_message += "\n\n📚 *Книга недели*\n\nК сожалению, сейчас нет доступных рекомендаций."
+        
+        # Добавляем напоминание о дне рождения, если есть
+        if birthday_reminder:
+            full_message += f"\n\n{birthday_reminder}"
+        
+        # Добавляем напоминание о дне памяти, если есть
+        if memorial_reminder:
+            full_message += f"\n\n{memorial_reminder}"
+        
+        full_message += "\n\nХорошего дня! 😊"
+        
+        # Используем синхронный метод для отправки сообщения
+        print(f"[{datetime.now()}] Отправляю сообщение...")
+        import asyncio
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown'))
+        print(f"[{datetime.now()}] Утреннее сообщение отправлено")
+        
+    except Exception as e:
+        error_message = f"❌ Ошибка при формировании утреннего сообщения: {e}"
+        print(f"[{datetime.now()}] {error_message}")
+        try:
+            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_message))
+        except Exception as send_error:
+            print(f"[{datetime.now()}] Критическая ошибка: не удалось отправить сообщение об ошибке: {send_error}")
 
 def send_weekly_summary():
     """Отправляет еженедельную сводку по рынку валют и криптовалют"""
-    greeting = get_motivational_greeting()
-    weekly_currency_summary = get_weekly_currency_summary()
-    weekly_crypto_summary = get_weekly_crypto_summary()
-    investment_wisdom = get_investment_wisdom()
-    
-    # Формируем еженедельное сообщение
-    weekly_message = f"""{greeting}
+    try:
+        print(f"[{datetime.now()}] Начинаю формирование еженедельной сводки...")
+        
+        greeting = get_motivational_greeting()
+        print(f"[{datetime.now()}] Получено приветствие")
+        
+        weekly_currency_summary = get_weekly_currency_summary()
+        print(f"[{datetime.now()}] Получена еженедельная сводка по валютам")
+        
+        weekly_crypto_summary = get_weekly_crypto_summary()
+        print(f"[{datetime.now()}] Получена еженедельная сводка по криптовалютам")
+        
+        investment_wisdom = get_investment_wisdom()
+        print(f"[{datetime.now()}] Получена инвестиционная мудрость")
+        
+        # Формируем еженедельное сообщение
+        weekly_message = f"""{greeting}
 
 📊 *ЕЖЕНЕДЕЛЬНАЯ СВОДКА ПО РЫНКУ*
 
@@ -88,18 +132,63 @@ def send_weekly_summary():
 {investment_wisdom}
 
 Хорошего воскресенья! 😊"""
-    
-    # Используем синхронный метод для отправки сообщения
-    import asyncio
-    asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown'))
-    print(f"[{datetime.now()}] Еженедельная сводка отправлена")
+        
+        # Используем синхронный метод для отправки сообщения
+        print(f"[{datetime.now()}] Отправляю еженедельную сводку...")
+        import asyncio
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown'))
+        print(f"[{datetime.now()}] Еженедельная сводка отправлена")
+        
+    except Exception as e:
+        error_message = f"❌ Ошибка при формировании еженедельной сводки: {e}"
+        print(f"[{datetime.now()}] {error_message}")
+        try:
+            import asyncio
+            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_message))
+        except Exception as send_error:
+            print(f"[{datetime.now()}] Критическая ошибка: не удалось отправить сообщение об ошибке: {send_error}")
 
 # Планировщик задач
 scheduler = BlockingScheduler(timezone="Europe/Moscow")
-scheduler.add_job(send_morning_message, 'cron', hour=9, minute=0)  # Ежедневно в 9:00
-scheduler.add_job(send_weekly_summary, 'cron', day_of_week=6, hour=10, minute=0)  # Воскресенье в 10:00
+
+# Добавляем обработчики исключений для задач
+def safe_send_morning_message():
+    """Безопасная отправка утреннего сообщения с обработкой исключений"""
+    try:
+        send_morning_message()
+    except Exception as e:
+        print(f"[{datetime.now()}] Критическая ошибка в утреннем сообщении: {e}")
+        try:
+            import asyncio
+            error_msg = f"❌ Критическая ошибка бота: {e}"
+            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_msg))
+        except:
+            print(f"[{datetime.now()}] Не удалось отправить сообщение об ошибке")
+
+def safe_send_weekly_summary():
+    """Безопасная отправка еженедельной сводки с обработкой исключений"""
+    try:
+        send_weekly_summary()
+    except Exception as e:
+        print(f"[{datetime.now()}] Критическая ошибка в еженедельной сводке: {e}")
+        try:
+            import asyncio
+            error_msg = f"❌ Критическая ошибка бота: {e}"
+            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_msg))
+        except:
+            print(f"[{datetime.now()}] Не удалось отправить сообщение об ошибке")
+
+scheduler.add_job(safe_send_morning_message, 'cron', hour=9, minute=0)  # Ежедневно в 9:00
+scheduler.add_job(safe_send_weekly_summary, 'cron', day_of_week=6, hour=10, minute=0)  # Воскресенье в 10:00
 
 print("✅ Умный Джери запущен и ждёт:")
 print("   📅 Ежедневные сообщения в 9:00")
 print("   📊 Еженедельные сводки по воскресеньям в 10:00")
-scheduler.start()
+print("   🛡️ Добавлена защита от зависаний")
+
+try:
+    scheduler.start()
+except KeyboardInterrupt:
+    print(f"[{datetime.now()}] Бот остановлен пользователем")
+except Exception as e:
+    print(f"[{datetime.now()}] Критическая ошибка планировщика: {e}")

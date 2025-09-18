@@ -24,7 +24,7 @@ def get_current_weather():
     """Получает текущую погоду"""
     try:
         url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={OW_API_KEY}&lang=ru&units=metric"
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         data = response.json()
 
         temp = data['main']['temp']
@@ -50,7 +50,7 @@ def get_tomorrow_weather():
     """Получает прогноз погоды на завтра"""
     try:
         url = f"http://api.openweathermap.org/data/2.5/forecast?q={CITY}&appid={OW_API_KEY}&lang=ru&units=metric"
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         data = response.json()
 
         # Получаем прогноз на завтра (обычно это 8-й элемент в списке, что соответствует завтрашнему дню)
