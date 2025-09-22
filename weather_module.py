@@ -2,6 +2,7 @@
 # pylint: disable=non-ascii-bytes
 
 import requests
+from datetime import datetime
 
 # Конфигурация для погоды
 OW_API_KEY = '32820bd27cbe5240390b8e55a80c4ac5'
@@ -10,15 +11,18 @@ CITY = 'Saint Petersburg,RU'
 def get_weather():
     """Получает текущую погоду и прогноз на завтра"""
     try:
+        print(f"[{datetime.now()}] Получаю погоду...")
         # Получаем текущую погоду
         current_weather = get_current_weather()
         # Получаем прогноз на завтра
         tomorrow_weather = get_tomorrow_weather()
         
+        print(f"[{datetime.now()}] Погода получена успешно")
         return f"{current_weather}\n\n{tomorrow_weather}"
 
     except Exception as e:
-        return f"Не удалось получить погоду. Ошибка: {e}"
+        print(f"[{datetime.now()}] Ошибка при получении погоды: {e}")
+        return f"🌤️ Не удалось получить актуальную погоду. Ошибка: {e}"
 
 def get_current_weather():
     """Получает текущую погоду"""

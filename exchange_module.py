@@ -2,6 +2,7 @@
 # pylint: disable=non-ascii-bytes
 
 import requests
+from datetime import datetime
 
 # Конфигурация для курсов валют
 EXCHANGE_API_URL = 'https://api.exchangerate-api.com/v4/latest/RUB'
@@ -11,20 +12,23 @@ CRYPTO_HISTORICAL_URL = 'https://api.coingecko.com/api/v3/coins'
 def get_exchange_rates():
     """Получает курсы валют и криптовалют"""
     try:
+        print(f"[{datetime.now()}] Получаю курсы валют...")
         # Получаем курсы обычных валют
         fiat_rates = get_fiat_rates()
         # Получаем курсы криптовалют
         crypto_rates = get_crypto_rates()
         
+        print(f"[{datetime.now()}] Курсы валют получены успешно")
         return f"{fiat_rates}\n\n{crypto_rates}"
         
     except Exception as e:
-        return f"Не удалось получить курсы валют. Ошибка: {e}"
+        print(f"[{datetime.now()}] Ошибка при получении курсов валют: {e}")
+        return f"💱 Не удалось получить актуальные курсы валют. Ошибка: {e}"
 
 def get_fiat_rates():
     """Получает курсы обычных валют"""
     try:
-        response = requests.get(EXCHANGE_API_URL, timeout=10)
+        response = requests.get(EXCHANGE_API_URL, timeout=5)
         data = response.json()
         
         # Получаем курсы относительно RUB (рубля)
@@ -53,11 +57,11 @@ def get_crypto_rates():
             'ids': 'bitcoin,ethereum,the-open-network',
             'vs_currencies': 'usd'
         }
-        response = requests.get(CRYPTO_API_URL, params=params, timeout=10)
+        response = requests.get(CRYPTO_API_URL, params=params, timeout=5)
         data = response.json()
         
         # Получаем курс доллара к рублю
-        usd_response = requests.get(EXCHANGE_API_URL, timeout=10)
+        usd_response = requests.get(EXCHANGE_API_URL, timeout=5)
         usd_data = usd_response.json()
         usd_to_rub = 1 / usd_data['rates']['USD']  # Сколько рублей за 1 доллар
         
@@ -141,7 +145,7 @@ def get_crypto_analysis():
             'ids': 'bitcoin,ethereum,the-open-network',
             'vs_currencies': 'usd'
         }
-        response = requests.get(CRYPTO_API_URL, params=params, timeout=10)
+        response = requests.get(CRYPTO_API_URL, params=params, timeout=5)
         data = response.json()
         
         # Симулируем изменения (в реальности это были бы исторические данные)
@@ -237,7 +241,7 @@ def get_weekly_crypto_summary():
             'ids': 'bitcoin,ethereum,the-open-network',
             'vs_currencies': 'usd'
         }
-        response = requests.get(CRYPTO_API_URL, params=params, timeout=10)
+        response = requests.get(CRYPTO_API_URL, params=params, timeout=5)
         data = response.json()
         
         # Симулируем недельные изменения

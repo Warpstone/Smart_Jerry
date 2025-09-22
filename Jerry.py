@@ -26,6 +26,11 @@ def send_morning_message():
     try:
         print(f"[{datetime.now()}] Начинаю формирование утреннего сообщения...")
         
+        # Проверяем, воскресенье ли сегодня
+        today = datetime.now()
+        is_sunday = today.weekday() == 6  # 6 = воскресенье
+        print(f"[{datetime.now()}] Сегодня {today.strftime('%A')} (weekday={today.weekday()}), is_sunday={is_sunday}")
+        
         greeting = get_motivational_greeting()
         print(f"[{datetime.now()}] Получено приветствие")
         
@@ -49,11 +54,6 @@ def send_morning_message():
         
         memorial_reminder = get_memorial_reminder()
         print(f"[{datetime.now()}] Проверены дни памяти")
-    
-        
-        # Проверяем, воскресенье ли сегодня
-        today = datetime.now()
-        is_sunday = today.weekday() == 6  # 6 = воскресенье
         
         # Формируем полное сообщение
         full_message = f"""{greeting}
@@ -93,12 +93,13 @@ def send_morning_message():
         print(f"[{datetime.now()}] Отправляю сообщение...")
         import asyncio
         asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown'))
-        print(f"[{datetime.now()}] Утреннее сообщение отправлено")
+        print(f"[{datetime.now()}] Утреннее сообщение отправлено успешно")
         
     except Exception as e:
         error_message = f"❌ Ошибка при формировании утреннего сообщения: {e}"
         print(f"[{datetime.now()}] {error_message}")
         try:
+            import asyncio
             asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_message))
         except Exception as send_error:
             print(f"[{datetime.now()}] Критическая ошибка: не удалось отправить сообщение об ошибке: {send_error}")
@@ -155,15 +156,18 @@ scheduler = BlockingScheduler(timezone="Europe/Moscow")
 def safe_send_morning_message():
     """Безопасная отправка утреннего сообщения с обработкой исключений"""
     try:
+        print(f"[{datetime.now()}] ===== НАЧАЛО ОТПРАВКИ УТРЕННЕГО СООБЩЕНИЯ =====")
         send_morning_message()
+        print(f"[{datetime.now()}] ===== УТРЕННЕЕ СООБЩЕНИЕ ОТПРАВЛЕНО УСПЕШНО =====")
     except Exception as e:
-        print(f"[{datetime.now()}] Критическая ошибка в утреннем сообщении: {e}")
+        print(f"[{datetime.now()}] КРИТИЧЕСКАЯ ОШИБКА в утреннем сообщении: {e}")
         try:
             import asyncio
             error_msg = f"❌ Критическая ошибка бота: {e}"
             asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_msg))
-        except:
-            print(f"[{datetime.now()}] Не удалось отправить сообщение об ошибке")
+            print(f"[{datetime.now()}] Сообщение об ошибке отправлено")
+        except Exception as send_error:
+            print(f"[{datetime.now()}] Не удалось отправить сообщение об ошибке: {send_error}")
 
 def safe_send_weekly_summary():
     """Безопасная отправка еженедельной сводки с обработкой исключений"""
@@ -178,8 +182,15 @@ def safe_send_weekly_summary():
         except:
             print(f"[{datetime.now()}] Не удалось отправить сообщение об ошибке")
 
+# Планировщик задач
 scheduler.add_job(safe_send_morning_message, 'cron', hour=9, minute=0)  # Ежедневно в 9:00
 scheduler.add_job(safe_send_weekly_summary, 'cron', day_of_week=6, hour=10, minute=0)  # Воскресенье в 10:00
+
+# Дополнительное логирование для диагностики
+print(f"[{datetime.now()}] Планировщик настроен:")
+print(f"[{datetime.now()}] - Ежедневные сообщения: каждый день в 09:00")
+print(f"[{datetime.now()}] - Еженедельные сводки: воскресенье в 10:00")
+print(f"[{datetime.now()}] - Текущий день недели: {datetime.now().strftime('%A')} (weekday={datetime.now().weekday()})")
 
 print("✅ Умный Джери запущен и ждёт:")
 print("   📅 Ежедневные сообщения в 9:00")
