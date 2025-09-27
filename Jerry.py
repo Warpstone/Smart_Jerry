@@ -89,10 +89,12 @@ def send_morning_message():
         
         full_message += "\n\nХорошего дня! 😊"
         
-        # Используем синхронный метод для отправки сообщения
+        # Используем асинхронный метод для отправки сообщения
         print(f"[{datetime.now()}] Отправляю сообщение...")
         import asyncio
-        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown'))
+        async def send_msg():
+            return await bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')
+        asyncio.run(send_msg())
         print(f"[{datetime.now()}] Утреннее сообщение отправлено успешно")
         
     except Exception as e:
@@ -100,7 +102,9 @@ def send_morning_message():
         print(f"[{datetime.now()}] {error_message}")
         try:
             import asyncio
-            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_message))
+            async def send_error_msg():
+                return await bot.send_message(chat_id=USER_CHAT_ID, text=error_message)
+            asyncio.run(send_error_msg())
         except Exception as send_error:
             print(f"[{datetime.now()}] Критическая ошибка: не удалось отправить сообщение об ошибке: {send_error}")
 
@@ -134,10 +138,12 @@ def send_weekly_summary():
 
 Хорошего воскресенья! 😊"""
         
-        # Используем синхронный метод для отправки сообщения
+        # Используем асинхронный метод для отправки сообщения
         print(f"[{datetime.now()}] Отправляю еженедельную сводку...")
         import asyncio
-        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown'))
+        async def send_weekly_msg():
+            return await bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
+        asyncio.run(send_weekly_msg())
         print(f"[{datetime.now()}] Еженедельная сводка отправлена")
         
     except Exception as e:
@@ -145,7 +151,9 @@ def send_weekly_summary():
         print(f"[{datetime.now()}] {error_message}")
         try:
             import asyncio
-            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_message))
+            async def send_error_msg():
+                return await bot.send_message(chat_id=USER_CHAT_ID, text=error_message)
+            asyncio.run(send_error_msg())
         except Exception as send_error:
             print(f"[{datetime.now()}] Критическая ошибка: не удалось отправить сообщение об ошибке: {send_error}")
 
@@ -164,7 +172,9 @@ def safe_send_morning_message():
         try:
             import asyncio
             error_msg = f"❌ Критическая ошибка бота: {e}"
-            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_msg))
+            async def send_critical_error():
+                return await bot.send_message(chat_id=USER_CHAT_ID, text=error_msg)
+            asyncio.run(send_critical_error())
             print(f"[{datetime.now()}] Сообщение об ошибке отправлено")
         except Exception as send_error:
             print(f"[{datetime.now()}] Не удалось отправить сообщение об ошибке: {send_error}")
@@ -178,7 +188,9 @@ def safe_send_weekly_summary():
         try:
             import asyncio
             error_msg = f"❌ Критическая ошибка бота: {e}"
-            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=error_msg))
+            async def send_critical_error():
+                return await bot.send_message(chat_id=USER_CHAT_ID, text=error_msg)
+            asyncio.run(send_critical_error())
         except:
             print(f"[{datetime.now()}] Не удалось отправить сообщение об ошибке")
 
