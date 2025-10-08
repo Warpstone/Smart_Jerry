@@ -7,6 +7,7 @@ import argparse
 import logging
 from datetime import datetime
 from telegram import Bot
+from telegram.utils.request import Request
 
 # Импорт модулей
 from weather_module import get_weather
@@ -27,7 +28,9 @@ os.chdir(script_dir)
 log_file = os.path.join(script_dir, 'bot.log')
 logging.basicConfig(filename=log_file, level=logging.INFO, format='[%(asctime)s] %(message)s')
 
-bot = Bot(token=TELEGRAM_TOKEN)
+# Инициализация бота с Request для синхронного вызова
+request = Request()
+bot = Bot(token=TELEGRAM_TOKEN, request=request)
 
 def send_morning_message():
     """Отправляет утреннее сообщение"""
@@ -70,18 +73,14 @@ def send_morning_message():
         full_message += "\n\nХорошего дня! 😊"
 
         logging.info("Отправляю сообщение...")
-        # Проверяем результат и ждём, если это корутина
-        result = bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')
-        if hasattr(result, 'wait'):  # Если возвращается корутина
-            result.wait()  # Синхронное ожидание
+        # Синхронный вызов через Request
+        bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')
         logging.info("Сообщение отправлено успешно")
 
     except Exception as e:
         logging.error(f"Ошибка: {e}")
         try:
-            result = bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
-            if hasattr(result, 'wait'):
-                result.wait()
+            bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
         except Exception as send_error:
             logging.error(f"Не удалось отправить ошибку: {send_error}")
 
@@ -112,17 +111,13 @@ def send_weekly_summary():
 Хорошего воскресенья! 😊"""
 
         logging.info("Отправляю сводку...")
-        result = bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
-        if hasattr(result, 'wait'):
-            result.wait()
+        bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
         logging.info("Сводка отправлена")
 
     except Exception as e:
         logging.error(f"Ошибка: {e}")
         try:
-            result = bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
-            if hasattr(result, 'wait'):
-                result.wait()
+            bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
         except Exception as send_error:
             logging.error(f"Не удалось отправить ошибку: {send_error}")
 
