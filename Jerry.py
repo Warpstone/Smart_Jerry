@@ -6,7 +6,7 @@ import sys
 import argparse
 import logging
 from datetime import datetime
-from telegram import Bot
+from telegram.ext import Application, ContextTypes  # Для асинхронного API
 import asyncio
 
 # Импорт модулей (предполагаю, они в той же папке или импортируемы)
@@ -19,53 +19,47 @@ from investment_module import get_investment_wisdom
 from book_week_module import get_book_of_the_week_with_api
 
 # Конфигурация бота
+# Конфигурация бота
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
 USER_CHAT_ID = '94476735'
 
-# Инициализация бота
-bot = Bot(token=TELEGRAM_TOKEN)
+# Инициализация приложения (замена Bot)
+application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-# Настройка логирования в файл (в папке скрипта)
-script_dir = os.path.dirname(os.path.abspath(__file__))
-log_file = os.path.join(script_dir, 'bot.log')
-logging.basicConfig(filename=log_file, level=logging.INFO, format='[%(asctime)s] %(message)s')
-
-def send_morning_message():
+async def send_morning_message(context: ContextTypes.DEFAULT_TYPE):
     """Отправляет утреннее информационное сообщение в Telegram"""
     try:
         logging.info("Начинаю формирование утреннего сообщения...")
-        print("Начинаю формирование утреннего сообщения...")  # Для console
-        
-        # Проверяем, воскресенье ли сегодня
+        print("Начинаю формирование утреннего сообщения...")
+
         today = datetime.now()
-        is_sunday = today.weekday() == 6  # 6 = воскресенье
+        is_sunday = today.weekday() == 6
         logging.info(f"Сегодня {today.strftime('%A')} (weekday={today.weekday()}), is_sunday={is_sunday}")
-        
+
         greeting = get_motivational_greeting()
         logging.info("Получено приветствие")
-        
+
         weather = get_weather()
         logging.info("Получена погода")
-        
+
         exchange_rates = get_exchange_rates()
         logging.info("Получены курсы валют")
-        
+
         currency_analysis = get_currency_analysis()
         logging.info("Получен анализ валют")
-        
+
         crypto_analysis = get_crypto_analysis()
         logging.info("Получен анализ криптовалют")
-        
+
         investment_wisdom = get_investment_wisdom()
         logging.info("Получена инвестиционная мудрость")
-        
+
         birthday_reminder = get_birthday_reminder()
         logging.info("Проверены дни рождения")
-        
+
         memorial_reminder = get_memorial_reminder()
         logging.info("Проверены дни памяти")
-        
-        # Формируем полное сообщение
+
         full_message = f"""{greeting}
 
 🌤️ {weather}
