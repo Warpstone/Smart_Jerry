@@ -70,15 +70,15 @@ def send_morning_message():
         full_message += "\n\nХорошего дня! 😊"
 
         logging.info("Отправляю сообщение...")
-        bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')
+        bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')  # Синхронный вызов
         logging.info("Сообщение отправлено успешно")
 
     except Exception as e:
         logging.error(f"Ошибка: {e}")
         try:
             bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
-        except:
-            logging.error("Не удалось отправить ошибку")
+        except Exception as send_error:
+            logging.error(f"Не удалось отправить ошибку: {send_error}")
 
 def send_weekly_summary():
     """Отправляет еженедельную сводку"""
@@ -107,15 +107,15 @@ def send_weekly_summary():
 Хорошего воскресенья! 😊"""
 
         logging.info("Отправляю сводку...")
-        bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
+        bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')  # Синхронный вызов
         logging.info("Сводка отправлена")
 
     except Exception as e:
         logging.error(f"Ошибка: {e}")
         try:
             bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
-        except:
-            logging.error("Не удалось отправить ошибку")
+        except Exception as send_error:
+            logging.error(f"Не удалось отправить ошибку: {send_error}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Jerry Bot")
