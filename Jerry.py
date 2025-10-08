@@ -164,7 +164,6 @@ def send_weekly_summary():
             logging.error(f"Не удалось отправить сообщение об ошибке: {send_error}")
 
 if __name__ == "__main__":
-    # Меняем working directory на папку скрипта (фикс PA)
     os.chdir(script_dir)
     
     parser = argparse.ArgumentParser(description="Запуск бота Jerry")
@@ -172,8 +171,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     logging.info(f"Запуск скрипта в режиме: {args.mode}")
-    
-    if args.mode == 'morning':
-        send_morning_message()
-    elif args.mode == 'weekly':
-        send_weekly_summary()
+
+    async def run_task():
+        if args.mode == 'morning':
+            await send_morning_message(None)  # None как временный контекст
+        elif args.mode == 'weekly':
+            await send_weekly_summary(None)
+
+    asyncio.run(run_task())
