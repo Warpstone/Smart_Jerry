@@ -70,13 +70,18 @@ def send_morning_message():
         full_message += "\n\nХорошего дня! 😊"
 
         logging.info("Отправляю сообщение...")
-        bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')  # Синхронный вызов
+        # Принудительный синхронный вызов, игнорируя корутину
+        result = bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')
+        if hasattr(result, 'wait'):  # Проверка на асинхронность
+            result.wait()  # Ждём завершения, если это корутина
         logging.info("Сообщение отправлено успешно")
 
     except Exception as e:
         logging.error(f"Ошибка: {e}")
         try:
-            bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
+            result = bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
+            if hasattr(result, 'wait'):
+                result.wait()
         except Exception as send_error:
             logging.error(f"Не удалось отправить ошибку: {send_error}")
 
@@ -107,13 +112,17 @@ def send_weekly_summary():
 Хорошего воскресенья! 😊"""
 
         logging.info("Отправляю сводку...")
-        bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')  # Синхронный вызов
+        result = bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
+        if hasattr(result, 'wait'):
+            result.wait()
         logging.info("Сводка отправлена")
 
     except Exception as e:
         logging.error(f"Ошибка: {e}")
         try:
-            bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
+            result = bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
+            if hasattr(result, 'wait'):
+                result.wait()
         except Exception as send_error:
             logging.error(f"Не удалось отправить ошибку: {send_error}")
 
