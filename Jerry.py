@@ -2,11 +2,11 @@
 # pylint: disable=non-ascii-bytes
 
 import os
+import sys
 import argparse
 import logging
-import asyncio
 from datetime import datetime
-from telegram.ext import Application
+from telegram import Bot
 
 # Импорт модулей
 from weather_module import get_weather
@@ -23,13 +23,14 @@ USER_CHAT_ID = '94476735'
 
 # Логирование
 script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
 log_file = os.path.join(script_dir, 'bot.log')
 logging.basicConfig(filename=log_file, level=logging.INFO, format='[%(asctime)s] %(message)s')
 
-# Инициализация приложения
-application = Application.builder().token(TELEGRAM_TOKEN).build()
+bot = Bot(token=TELEGRAM_TOKEN)
 
-async def send_morning_message(update=None, context=None):
+def send_morning_message():
+    """Отправляет утреннее сообщение"""
     try:
         logging.info("Начинаю утреннее сообщение...")
         today = datetime.now()
@@ -69,14 +70,18 @@ async def send_morning_message(update=None, context=None):
         full_message += "\n\nХорошего дня! 😊"
 
         logging.info("Отправляю сообщение...")
-        await context.bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')
-        logging.info("Сообщение отправлено")
+        bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')
+        logging.info("Сообщение отправлено успешно")
 
     except Exception as e:
         logging.error(f"Ошибка: {e}")
-        await context.bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
+        try:
+            bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
+        except:
+            logging.error("Не удалось отправить ошибку")
 
-async def send_weekly_summary(update=None, context=None):
+def send_weekly_summary():
+    """Отправляет еженедельную сводку"""
     try:
         today = datetime.now()
         if today.weekday() != 6:
@@ -102,26 +107,24 @@ async def send_weekly_summary(update=None, context=None):
 Хорошего воскресенья! 😊"""
 
         logging.info("Отправляю сводку...")
-        await context.bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
+        bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
         logging.info("Сводка отправлена")
 
     except Exception as e:
         logging.error(f"Ошибка: {e}")
-        await context.bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
+        try:
+            bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
+        except:
+            logging.error("Не удалось отправить ошибку")
 
 if __name__ == "__main__":
-    os.chdir(script_dir)
-    
     parser = argparse.ArgumentParser(description="Jerry Bot")
     parser.add_argument('--mode', type=str, default='morning', choices=['morning', 'weekly'])
     args = parser.parse_args()
     
     logging.info(f"Запуск в режиме: {args.mode}")
-
-    async def main():
-        if args.mode == 'morning':
-            await send_morning_message()
-        elif args.mode == 'weekly':
-            await send_weekly_summary()
-
-    asyncio.run(main())
+    
+    if args.mode == 'morning':
+        send_morning_message()
+    elif args.mode == 'weekly':
+        send_weekly_summary()
