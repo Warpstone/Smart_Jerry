@@ -83,7 +83,7 @@ def send_morning_message():
 
         # Отправка сообщения
         logging.info("Отправляю сообщение в Telegram...")
-        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown'))
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='HTML'))
         logging.info("Сообщение отправлено успешно")
 
     except Exception as e:
