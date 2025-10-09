@@ -44,7 +44,7 @@ def get_crypto_analysis():
         params_current = {'ids': 'bitcoin,ethereum,the-open-network', 'vs_currencies': 'usd'}
         response_current = requests.get(CRYPTO_API_URL, params=params_current, timeout=10)
         response_current.raise_for_status()
-        current_data = response_current.json()
+        current_data = response_current.json(force=True)
 
         # Проверяем наличие ключей
         if not current_data or 'bitcoin' not in current_data:
@@ -64,7 +64,7 @@ def get_crypto_analysis():
             params_historical = {'vs_currency': 'usd', 'days': '1', 'interval': 'daily'}
             response_historical = requests.get(historical_url, params=params_historical, timeout=10)
             response_historical.raise_for_status()
-            data = response_historical.json()
+            data = response_historical.json(force=True)
             if 'prices' in data and data['prices']:
                 historical_data[coin] = data['prices'][0][1]  # Первая цена (24 часа назад)
 
