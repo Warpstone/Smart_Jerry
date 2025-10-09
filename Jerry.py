@@ -5,13 +5,20 @@ import os
 import sys
 import argparse
 import logging
+import asyncio
 from datetime import datetime
 from telegram import Bot
 
 # Импорт модулей
 from weather_module import get_weather
 from greetings_module import get_motivational_greeting
-from exchange_module import get_exchange_rates, get_currency_analysis, get_crypto_analysis, get_weekly_currency_summary, get_weekly_crypto_summary
+from exchange_module import (
+    get_exchange_rates,
+    get_currency_analysis,
+    get_crypto_analysis,
+    get_weekly_currency_summary,
+    get_weekly_crypto_summary,
+)
 from birthday_module import get_birthday_reminder
 from memorial_module import get_memorial_reminder
 from investment_module import get_investment_wisdom
@@ -29,13 +36,17 @@ logging.basicConfig(filename=log_file, level=logging.INFO, format='[%(asctime)s]
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
+# ============================
+# УТРЕННЕЕ СООБЩЕНИЕ
+# ============================
 def send_morning_message():
     """Отправляет утреннее сообщение"""
     try:
         logging.info("Начинаю утреннее сообщение...")
         today = datetime.now()
-        is_sunday = today.weekday() == 6
+        is_sunday = today.weekday() == 6  # Воскресенье
 
+        # Получаем все данные
         greeting = get_motivational_greeting()
         weather = get_weather()
         exchange_rates = get_exchange_rates()
@@ -45,6 +56,7 @@ def send_morning_message():
         birthday_reminder = get_birthday_reminder()
         memorial_reminder = get_memorial_reminder()
 
+        # Собираем всё в единое сообщение
         full_message = f"""{greeting}
 
 🌤️ {weather}
@@ -69,28 +81,27 @@ def send_morning_message():
 
         full_message += "\n\nХорошего дня! 😊"
 
-        logging.info("Отправляю сообщение...")
-        # Прямой синхронный вызов с обработкой корутины
-        result = bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown')
-        if hasattr(result, 'wait'):  # Если возвращается корутина
-            result.wait()  # Синхронное ожидание
+        # Отправка сообщения
+        logging.info("Отправляю сообщение в Telegram...")
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='Markdown'))
         logging.info("Сообщение отправлено успешно")
 
     except Exception as e:
-        logging.error(f"Ошибка: {e}")
+        logging.error(f"Ошибка при отправке сообщения: {e}")
         try:
-            result = bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
-            if hasattr(result, 'wait'):
-                result.wait()
+            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}"))
         except Exception as send_error:
-            logging.error(f"Не удалось отправить ошибку: {send_error}")
+            logging.error(f"Не удалось отправить сообщение об ошибке: {send_error}")
 
+# ============================
+# ЕЖЕНЕДЕЛЬНОЕ СООБЩЕНИЕ
+# ============================
 def send_weekly_summary():
     """Отправляет еженедельную сводку"""
     try:
         today = datetime.now()
         if today.weekday() != 6:
-            logging.info("Не воскресенье — пропускаю")
+            logging.info("Сегодня не воскресенье — пропускаю еженедельную сводку.")
             return
 
         logging.info("Начинаю еженедельную сводку...")
@@ -111,28 +122,27 @@ def send_weekly_summary():
 
 Хорошего воскресенья! 😊"""
 
-        logging.info("Отправляю сводку...")
-        result = bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
-        if hasattr(result, 'wait'):
-            result.wait()
-        logging.info("Сводка отправлена")
+        logging.info("Отправляю еженедельную сводку...")
+        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown'))
+        logging.info("Еженедельная сводка успешно отправлена")
 
     except Exception as e:
-        logging.error(f"Ошибка: {e}")
+        logging.error(f"Ошибка при отправке сводки: {e}")
         try:
-            result = bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
-            if hasattr(result, 'wait'):
-                result.wait()
+            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}"))
         except Exception as send_error:
-            logging.error(f"Не удалось отправить ошибку: {send_error}")
+            logging.error(f"Не удалось отправить сообщение об ошибке: {send_error}")
 
+# ============================
+# ТОЧКА ВХОДА
+# ============================
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Jerry Bot")
     parser.add_argument('--mode', type=str, default='morning', choices=['morning', 'weekly'])
     args = parser.parse_args()
-    
-    logging.info(f"Запуск в режиме: {args.mode}")
-    
+
+    logging.info(f"Запуск Jerry в режиме: {args.mode}")
+
     if args.mode == 'morning':
         send_morning_message()
     elif args.mode == 'weekly':
