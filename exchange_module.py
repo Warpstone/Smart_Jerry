@@ -227,3 +227,39 @@ def get_weekly_crypto_summary():
     except Exception as e:
         logger.error(f"Ошибка получения недельной сводки по крипто: {e}")
         return f"🌐 Недельная сводка по крипто: Ошибка получения данных: {e}"
+def get_crypto_analysis():
+    """
+    Безопасная версия анализа криптовалют.
+    Возвращает краткий отчёт или сообщение об ошибке.
+    """
+    try:
+        params = {
+            "ids": "bitcoin,ethereum,the-open-network",
+            "vs_currencies": "usd"
+        }
+        resp = _http_get_with_retries(CRYPTO_API_URL, params=params, max_retries=2, backoff=0.8)
+        data = resp.json()
+
+        # если данные отсутствуют
+        if not data or "bitcoin" not in data:
+            raise ValueError("Пустой ответ CoinGecko")
+
+        btc = data.get("bitcoin", {}).get("usd", 0)
+        eth = data.get("ethereum", {}).get("usd", 0)
+        ton = data.get("the-open-network", {}).get("usd", 0)
+
+        # Формируем аккуратный текст
+        return (
+            "📈 Анализ криптовалют (текущие цены):\n"
+            f"₿ BTC: {btc:,.0f} USD\n"
+            f"Ξ ETH: {eth:,.0f} USD\n"
+            f"💎 TON: {ton:,.2f} USD"
+        )
+
+    except Exception as e:
+        logging.error(f"Ошибка get_crypto_analysis: {e}")
+        return (
+            "📈 Анализ криптовалют (за 24ч):\n"
+            f"Не удалось получить данные. Ошибка: {e}\n\n"
+            "Совет: проверь CoinGecko или повтори позже."
+        )
