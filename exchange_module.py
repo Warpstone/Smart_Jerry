@@ -141,7 +141,41 @@ def get_crypto_analysis():
             "Проверь подключение или повтори позже."
         )
 
-# === Проверка курса валют за неделю (дополнительная функция, опционально) ===
+# === Текущие курсы валют ===
+def get_exchange_rates():
+    """
+    Возвращает актуальные курсы валют.
+    """
+    try:
+        base = "USD"
+        targets = ["RUB", "EUR", "CNY"]
+        
+        resp = _http_get_with_retries(
+            f"{CURRENCY_API_URL}latest",
+            params={"from": base, "to": ",".join(targets)},
+            max_retries=2,
+            backoff=0.8
+        )
+        data = resp.json()
+        rates = data.get("rates", {})
+        
+        lines = ["💵 *Курсы валют (к USD):*"]
+        
+        if "RUB" in rates:
+            lines.append(f"₽ RUB: {rates['RUB']:.2f}")
+        if "EUR" in rates:
+            lines.append(f"€ EUR: {rates['EUR']:.4f}")
+        if "CNY" in rates:
+            lines.append(f"¥ CNY: {rates['CNY']:.2f}")
+            
+        logging.info("Курсы валют получены успешно")
+        return "\n".join(lines)
+        
+    except Exception as e:
+        logging.error(f"Ошибка get_exchange_rates: {e}")
+        return f"💵 *Курсы валют:* Не удалось получить данные ({e})"
+
+# === Проверка курса валют за неделю ===
 def get_weekly_currency_summary():
     """
     Возвращает краткий обзор изменения курса USD/EUR за неделю.
@@ -167,3 +201,46 @@ def get_weekly_currency_summary():
     except Exception as e:
         logging.error(f"Ошибка get_weekly_currency_summary: {e}")
         return "Не удалось получить недельный анализ валют."
+
+# === Проверка криптовалют за неделю ===
+def get_weekly_crypto_summary():
+    """
+    Возвращает краткий обзор криптовалют за неделю.
+    """
+    try:
+        # CoinCap API предоставляет историю, но для простоты вернем текущий статус
+        # с процентным изменением за 24 часа
+        cryptos = {
+            "bitcoin": "BTC",
+            "ethereum": "ETH",
+            "toncoin": "TON"
+        }
+        
+        lines = ["📊 *Криптовалюты (изменение за 24ч):*"]
+        
+        for crypto_id, name in cryptos.items():
+            try:
+                resp = _http_get_with_retries(
+                    f"{CRYPTO_API_URL}/{crypto_id}",
+                    max_retries=2,
+                    backoff=0.5
+                )
+                data = resp.json()
+                
+                if "data" in data:
+                    change_24h = float(data["data"].get("changePercent24Hr", 0))
+                    lines.append(f"{name}: {change_24h:+.2f}%")
+                    
+            except Exception as e:
+                logging.warning(f"Ошибка получения {crypto_id}: {e}")
+                continue
+        
+        if len(lines) == 1:
+            raise ValueError("Не удалось получить данные о криптовалютах")
+            
+        logging.info("Недельная сводка криптовалют получена успешно")
+        return "\n".join(lines)
+        
+    except Exception as e:
+        logging.error(f"Ошибка get_weekly_crypto_summary: {e}")
+        return "Не удалось получить недельный анализ криптовалют."
