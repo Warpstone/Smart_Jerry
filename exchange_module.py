@@ -1,265 +1,169 @@
-# exchange_module.py
-import os
-import json
-import time
-import random
+import requests
 import logging
 from datetime import datetime, timedelta
+import time
+import random
 
-import requests
+# === Базовые настройки ===
+CURRENCY_API_URL = "https://api.frankfurter.app/"
+CRYPTO_API_URL = "https://api.coincap.io/v2/assets"
+HEADERS = {"User-Agent": "SmartJerryBot/1.0"}
 
-# --- Настройки API ---
-# Основной источник курсов (оставляем тот, что у тебя был), но делаем fallback на exchangerate.host
-EXCHANGE_API_PRIMARY = "https://api.exchangerate-api.com/v4/latest/USD"
-EXCHANGE_API_FALLBACK = "https://api.exchangerate.host/latest?base=USD"
-
-# Крипто (оставляем для совместимости)
-CRYPTO_API_URL = "https://api.coingecko.com/api/v3/simple/price"
-CRYPTO_HISTORICAL_URL = "https://api.coingecko.com/api/v3/coins"
-
-# Кеширование
-CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
-os.makedirs(CACHE_DIR, exist_ok=True)
-CURRENCY_CACHE_FILE = os.path.join(CACHE_DIR, "currency_cache.json")
-CURRENCY_CACHE_TTL = 300  # сек (5 минут) — при желании увеличить
-
-# Логирование (использует лог основного приложения)
-logger = logging.getLogger(__name__)
-
-
-def _http_get_with_retries(url, params=None, max_retries=3, backoff=1.0):
-    """GET с retry/429/Retry-After и jitter."""
-    attempt = 0
-    while attempt <= max_retries:
+# === Вспомогательная функция для повторных запросов ===
+def _http_get_with_retries(url, params=None, max_retries=3, backoff=1.5):
+    """HTTP-запрос с повторами при временных ошибках."""
+    for attempt in range(max_retries):
         try:
-            resp = requests.get(url, params=params, timeout=10)
-        except requests.RequestException as e:
-            logger.warning(f"Request exception {e} -> {url} (attempt {attempt+1}/{max_retries})")
-            if attempt == max_retries:
-                raise
-            wait = backoff * (2 ** attempt) + random.random()
-            time.sleep(wait)
-            attempt += 1
-            continue
-
-        # Если rate-limited
-        if resp.status_code == 429:
-            ra = resp.headers.get("Retry-After")
-            try:
-                wait = int(ra) if ra and ra.isdigit() else int(backoff * (2 ** attempt))
-            except Exception:
-                wait = backoff * (2 ** attempt)
-            logger.warning(f"429 from {url}. Waiting {wait}s (attempt {attempt+1}/{max_retries})")
-            time.sleep(wait + random.random())
-            attempt += 1
-            continue
-
-        try:
+            resp = requests.get(url, params=params, headers=HEADERS, timeout=10)
             resp.raise_for_status()
             return resp
-        except requests.RequestException as e:
-            logger.warning(f"HTTP {resp.status_code} from {url}: {e} (attempt {attempt+1}/{max_retries})")
-            if attempt == max_retries:
-                raise
-            wait = backoff * (2 ** attempt) + random.random()
-            time.sleep(wait)
-            attempt += 1
-
-    raise Exception(f"Max retries exceeded for {url}")
-
-
-def _load_currency_cache():
-    try:
-        if not os.path.exists(CURRENCY_CACHE_FILE):
-            return None
-        with open(CURRENCY_CACHE_FILE, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-        ts = datetime.fromisoformat(payload.get("timestamp"))
-        if (datetime.now() - ts).total_seconds() <= CURRENCY_CACHE_TTL:
-            return payload.get("data")
-    except Exception as e:
-        logger.warning(f"Не удалось загрузить кеш валют: {e}")
-    return None
-
-
-def _save_currency_cache(data):
-    try:
-        with open(CURRENCY_CACHE_FILE, "w", encoding="utf-8") as f:
-            json.dump({"timestamp": datetime.now().isoformat(), "data": data}, f, ensure_ascii=False)
-    except Exception as e:
-        logger.warning(f"Не удалось сохранить кеш валют: {e}")
-
-
-def _fetch_exchange_rates():
-    """Попытка получить rates словарь, с fallback'ом."""
-    # Пробуем primary
-    for url in (EXCHANGE_API_PRIMARY, EXCHANGE_API_FALLBACK):
-        try:
-            resp = _http_get_with_retries(url, max_retries=2, backoff=0.8)
-            data = resp.json()
-            # Некоторые API возвращают поле 'rates', некоторые - в корне
-            rates = data.get("rates") or data
-            return rates
         except Exception as e:
-            logger.warning(f"Не удалось получить курсы с {url}: {e}")
-            continue
-    # Если ничего не получилось — бросаем
-    raise Exception("Не удалось получить курсы с основного и fallback API.")
+            logging.warning(f"Попытка {attempt + 1}/{max_retries} не удалась: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(backoff * (attempt + 1))
+    raise ConnectionError(f"Не удалось получить данные с {url}")
 
-
-def get_exchange_rates():
-    """
-    Возвращает строку с текущими курсами.
-    По умолчанию показываем EUR, CNY (юань), RUB — привязанные к USD.
-    На выходе — всегда читаемый текст (без Markdown-искажений).
-    """
-    try:
-        rates = _fetch_exchange_rates()
-
-        # Берём осторожно — если ключа нет, ставим None
-        eur = rates.get("EUR")
-        rub = rates.get("RUB")
-        cny = rates.get("CNY") or rates.get("CNH")  # иногда юань подписан CNH
-
-        # Форматируем аккуратно, подменяя отсутствующие значения
-        def fmt(val, dps=2):
-            if val is None:
-                return "—"
-            try:
-                if abs(val) >= 1000:
-                    return f"{val:,.0f}"
-                return f"{val:.{dps}f}"
-            except Exception:
-                return str(val)
-
-        return (
-            "💱 Курсы валют (к USD):\n"
-            f"EUR: {fmt(eur)}\n"
-            f"RUB: {fmt(rub)}\n"
-            f"CNY: {fmt(cny)}"
-        )
-    except Exception as e:
-        logger.error(f"Ошибка получения курсов валют: {e}")
-        # попробуем вернуть кеш, если есть
-        cached = _load_currency_cache()
-        if cached:
-            logger.info("Возвращаю кешированные курсы валют.")
-            return "💱 Курсы валют (к USD) — кеш:\n" + cached
-        return f"💱 Курсы валют (к USD):\nОшибка получения данных: {e}"
-
-
+# === Анализ валют за сутки ===
 def get_currency_analysis():
     """
-    Анализ изменения валют за последние 24 часа.
-    Пытаемся получить текущие и вчерашние значения и посчитать % изменения.
-    Если API недоступен — возвращаем кешированную версию или аккуратное сообщение.
+    Анализ изменения курсов валют за последние сутки.
+    Использует стабильный источник Frankfurter.app (данные ЕЦБ).
     """
     try:
-        # Сначала пытаемся загрузить актуальные rates (сейчас)
-        rates_now = _fetch_exchange_rates()
+        base = "USD"
+        targets = ["USD", "RUB", "CNY"]
 
-        # Затем пытаемся получить вчерашние курсы через exchangerate.host (поддерживает дату)
-        yesterday = (datetime.now() - timedelta(days=1)).date().isoformat()
-        historical_url = f"https://api.exchangerate.host/{yesterday}"
-        try:
-            resp_hist = _http_get_with_retries(historical_url, params={"base": "USD"}, max_retries=2, backoff=0.8)
-            hist_data = resp_hist.json()
-            rates_yesterday = hist_data.get("rates") or {}
-        except Exception as e:
-            logger.warning(f"Не удалось получить исторические курсы: {e}")
-            rates_yesterday = {}
+        # === 1. Получаем сегодняшние курсы ===
+        resp_today = _http_get_with_retries(
+            f"{CURRENCY_API_URL}latest",
+            params={"from": base, "to": ",".join(targets)},
+            max_retries=2,
+            backoff=0.8,
+        )
+        today_data = resp_today.json()
+        today_rates = today_data.get("rates", {})
 
-        # Валюты которые хотим показывать
-        keys = [("EUR", "Евро"), ("RUB", "Рубль"), ("CNY", "Юань")]
+        # === 2. Получаем вчерашние курсы ===
+        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        resp_yesterday = _http_get_with_retries(
+            f"{CURRENCY_API_URL}{yesterday}",
+            params={"from": base, "to": ",".join(targets)},
+            max_retries=2,
+            backoff=0.8,
+        )
+        yesterday_data = resp_yesterday.json()
+        yesterday_rates = yesterday_data.get("rates", {})
+
+        # === 3. Формируем анализ ===
         lines = []
-        for code, name in keys:
-            now_v = rates_now.get(code)
-            y_v = rates_yesterday.get(code)
-            if now_v is None:
-                # если в текущем нет — пометим как отсутствующее
-                lines.append(f"{name} ({code}): нет данных сейчас")
+        for code in targets:
+            t_rate = today_rates.get(code)
+            y_rate = yesterday_rates.get(code)
+            if not t_rate or not y_rate:
+                lines.append(f"{code}: данные временно недоступны")
                 continue
-            if y_v is None or y_v == 0:
-                # если нет вчерашних — симулируем небольшой случайный сдвиг, но пометим это
-                fake_change = random.uniform(-0.5, 0.5)
-                lines.append(f"{name} ({code}): {fake_change:+.2f}% (данные частично недоступны — использован симулятор)")
-                continue
-            # считаем процентную разницу
-            try:
-                change = ((now_v - y_v) / y_v) * 100
-            except Exception:
-                change = 0.0
-            lines.append(f"{name} ({code}): {change:+.2f}%")
 
-        analysis = "💹 Анализ валют (за 24ч):\n" + "\n".join(lines)
+            change_pct = ((t_rate - y_rate) / y_rate) * 100
+            symbol = {"USD": "$", "RUB": "₽", "CNY": "¥"}.get(code, "")
+            lines.append(f"{code} {symbol}: {change_pct:+.2f}%")
 
-        # Сохраним в кеш (строку), чтобы при следующем провале вернуть что-то полезное
-        _save_currency_cache(analysis)
-
-        return analysis
+        result = "💱 *Анализ валют за сутки:*\n" + "\n".join(lines)
+        logging.info(f"Анализ валют получен успешно ({yesterday} → {today_data.get('date')})")
+        return result
 
     except Exception as e:
-        logger.error(f"Ошибка анализа валют: {e}")
-        cached = _load_currency_cache()
-        if cached:
-            logger.info("Возвращаю кешированный анализ валют (из-за ошибки).")
-            return cached + "\n\n(Примечание: данные из кеша — API временно недоступен.)"
-        return f"💹 Анализ валют (за 24ч):\nНе удалось получить данные. Ошибка: {e}"
+        logging.error(f"Ошибка get_currency_analysis: {e}")
+        return f"💱 *Анализ валют:* Не удалось получить данные ({e})"
 
-
-# --- Остальные функции (weekly summaries и т.д.) оставляем как раньше, если они используются ---
-def get_weekly_currency_summary():
-    try:
-        # Реализуем простую симуляцию — или можно расширить аналогично get_currency_analysis
-        return f"🌐 Недельная сводка по валютам:\nEUR: ±{random.uniform(-5,5):.2f}%\nRUB: ±{random.uniform(-5,5):.2f}%\nCNY: ±{random.uniform(-5,5):.2f}%"
-    except Exception as e:
-        logger.error(f"Ошибка получения недельной сводки по валютам: {e}")
-        return f"🌐 Недельная сводка по валютам: Ошибка получения данных: {e}"
-
-
-# --- Если нужны — оставляем старые крипто-функции без изменений (чтобы бот работал дальше) ---
-def get_weekly_crypto_summary():
-    try:
-        btc_change = random.uniform(-10, 10)
-        eth_change = random.uniform(-10, 10)
-        ton_change = random.uniform(-10, 10)
-        return f"🌐 Недельная сводка по крипто:\n₿ BTC: ±{btc_change:.2f}%\nΞ ETH: ±{eth_change:.2f}%\n💎 TON: ±{ton_change:.2f}%"
-    except Exception as e:
-        logger.error(f"Ошибка получения недельной сводки по крипто: {e}")
-        return f"🌐 Недельная сводка по крипто: Ошибка получения данных: {e}"
+# === Анализ криптовалют ===
 def get_crypto_analysis():
     """
     Безопасная версия анализа криптовалют.
+    Использует надежное API CoinCap (без ограничений).
     Возвращает краткий отчёт или сообщение об ошибке.
     """
     try:
-        params = {
-            "ids": "bitcoin,ethereum,the-open-network",
-            "vs_currencies": "usd"
+        # Словарь криптовалют: ID в CoinCap -> (название, символ)
+        cryptos = {
+            "bitcoin": ("BTC", "₿"),
+            "ethereum": ("ETH", "Ξ"),
+            "toncoin": ("TON", "💎")
         }
-        resp = _http_get_with_retries(CRYPTO_API_URL, params=params, max_retries=2, backoff=0.8)
-        data = resp.json()
-
-        # если данные отсутствуют
-        if not data or "bitcoin" not in data:
-            raise ValueError("Пустой ответ CoinGecko")
-
-        btc = data.get("bitcoin", {}).get("usd", 0)
-        eth = data.get("ethereum", {}).get("usd", 0)
-        ton = data.get("the-open-network", {}).get("usd", 0)
-
-        # Формируем аккуратный текст
-        return (
-            "📈 Анализ криптовалют (текущие цены):\n"
-            f"₿ BTC: {btc:,.0f} USD\n"
-            f"Ξ ETH: {eth:,.0f} USD\n"
-            f"💎 TON: {ton:,.2f} USD"
-        )
+        
+        prices = {}
+        
+        # Получаем цену каждой криптовалюты
+        for crypto_id, (name, symbol) in cryptos.items():
+            try:
+                resp = _http_get_with_retries(
+                    f"{CRYPTO_API_URL}/{crypto_id}",
+                    max_retries=2,
+                    backoff=0.5
+                )
+                data = resp.json()
+                
+                if "data" in data and "priceUsd" in data["data"]:
+                    price_usd = float(data["data"]["priceUsd"])
+                    prices[name] = (price_usd, symbol)
+                else:
+                    logging.warning(f"Нет данных для {crypto_id}")
+                    
+            except Exception as e:
+                logging.warning(f"Ошибка получения {crypto_id}: {e}")
+                continue
+        
+        if not prices:
+            raise ValueError("Не удалось получить ни одной криптовалюты")
+        
+        # Формируем отчет
+        lines = ["📈 *Анализ криптовалют (текущие цены):*"]
+        
+        if "BTC" in prices:
+            btc_price, btc_symbol = prices["BTC"]
+            lines.append(f"{btc_symbol} BTC: {btc_price:,.0f} USD")
+            
+        if "ETH" in prices:
+            eth_price, eth_symbol = prices["ETH"]
+            lines.append(f"{eth_symbol} ETH: {eth_price:,.0f} USD")
+            
+        if "TON" in prices:
+            ton_price, ton_symbol = prices["TON"]
+            lines.append(f"{ton_symbol} TON: {ton_price:,.2f} USD")
+        
+        logging.info("Анализ криптовалют получен успешно (CoinCap API)")
+        return "\n".join(lines)
 
     except Exception as e:
         logging.error(f"Ошибка get_crypto_analysis: {e}")
         return (
-            "📈 Анализ криптовалют (за 24ч):\n"
-            f"Не удалось получить данные. Ошибка: {e}\n\n"
-            "Совет: проверь CoinGecko или повтори позже."
+            "📈 *Анализ криптовалют:*\n"
+            f"Не удалось получить данные. Ошибка: {e}\n"
+            "Проверь подключение или повтори позже."
         )
+
+# === Проверка курса валют за неделю (дополнительная функция, опционально) ===
+def get_weekly_currency_summary():
+    """
+    Возвращает краткий обзор изменения курса USD/EUR за неделю.
+    """
+    try:
+        base = "EUR"
+        target = "USD"
+        today = datetime.now().date()
+        week_ago = today - timedelta(days=7)
+
+        resp_today = _http_get_with_retries(f"{CURRENCY_API_URL}latest", params={"from": base, "to": target})
+        resp_week = _http_get_with_retries(f"{CURRENCY_API_URL}{week_ago}", params={"from": base, "to": target})
+
+        t_rate = resp_today.json().get("rates", {}).get(target)
+        w_rate = resp_week.json().get("rates", {}).get(target)
+
+        if not t_rate or not w_rate:
+            raise ValueError("Не удалось получить курс за неделю")
+
+        diff = ((t_rate - w_rate) / w_rate) * 100
+        return f"📅 За неделю: EUR/USD изменился на {diff:+.2f}%"
+
+    except Exception as e:
+        logging.error(f"Ошибка get_weekly_currency_summary: {e}")
+        return "Не удалось получить недельный анализ валют."
