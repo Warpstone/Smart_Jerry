@@ -39,7 +39,7 @@ bot = Bot(token=TELEGRAM_TOKEN)
 # ============================
 # УТРЕННЕЕ СООБЩЕНИЕ
 # ============================
-def send_morning_message():
+async def send_morning_message():
     """Отправляет утреннее сообщение"""
     try:
         logging.info("Начинаю утреннее сообщение...")
@@ -102,20 +102,20 @@ def send_morning_message():
 
         # Отправка сообщения
         logging.info("Отправляю сообщение в Telegram...")
-        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='HTML'))
+        await bot.send_message(chat_id=USER_CHAT_ID, text=full_message, parse_mode='HTML')
         logging.info("Сообщение отправлено успешно")
 
     except Exception as e:
         logging.error(f"Ошибка при отправке сообщения: {e}")
         try:
-            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}"))
+            await bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
         except Exception as send_error:
             logging.error(f"Не удалось отправить сообщение об ошибке: {send_error}")
 
 # ============================
 # ЕЖЕНЕДЕЛЬНОЕ СООБЩЕНИЕ
 # ============================
-def send_weekly_summary():
+async def send_weekly_summary():
     """Отправляет еженедельную сводку"""
     try:
         today = datetime.now()
@@ -142,13 +142,13 @@ def send_weekly_summary():
 Хорошего воскресенья! 😊"""
 
         logging.info("Отправляю еженедельную сводку...")
-        asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown'))
+        await bot.send_message(chat_id=USER_CHAT_ID, text=weekly_message, parse_mode='Markdown')
         logging.info("Еженедельная сводка успешно отправлена")
 
     except Exception as e:
         logging.error(f"Ошибка при отправке сводки: {e}")
         try:
-            asyncio.run(bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}"))
+            await bot.send_message(chat_id=USER_CHAT_ID, text=f"❌ Ошибка: {e}")
         except Exception as send_error:
             logging.error(f"Не удалось отправить сообщение об ошибке: {send_error}")
 
@@ -163,6 +163,6 @@ if __name__ == "__main__":
     logging.info(f"Запуск Jerry в режиме: {args.mode}")
 
     if args.mode == 'morning':
-        send_morning_message()
+        asyncio.run(send_morning_message())
     elif args.mode == 'weekly':
-        send_weekly_summary()
+        asyncio.run(send_weekly_summary())
