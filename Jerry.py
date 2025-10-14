@@ -43,6 +43,8 @@ def send_morning_message():
     """Отправляет утреннее сообщение"""
     try:
         logging.info("Начинаю утреннее сообщение...")
+        today = datetime.now()
+        is_sunday = today.weekday() == 6  # Воскресенье
 
         # Получаем все данные
         greeting = get_motivational_greeting()
@@ -72,13 +74,31 @@ def send_morning_message():
 
 {book_of_day}"""
 
+        # Добавляем еженедельную сводку по воскресеньям
+        if is_sunday:
+            logging.info("Воскресенье - добавляю еженедельную сводку...")
+            weekly_currency = get_weekly_currency_summary()
+            weekly_crypto = get_weekly_crypto_summary()
+            
+            full_message += f"""
+
+📊 *ЕЖЕНЕДЕЛЬНАЯ СВОДКА ПО РЫНКУ*
+
+{weekly_currency}
+
+{weekly_crypto}"""
+
         if birthday_reminder:
             full_message += f"\n\n{birthday_reminder}"
 
         if memorial_reminder:
             full_message += f"\n\n{memorial_reminder}"
 
-        full_message += "\n\nХорошего дня! 😊"
+        # Финальное приветствие зависит от дня недели
+        if is_sunday:
+            full_message += "\n\nХорошего воскресенья! 😊"
+        else:
+            full_message += "\n\nХорошего дня! 😊"
 
         # Отправка сообщения
         logging.info("Отправляю сообщение в Telegram...")
