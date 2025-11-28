@@ -7,7 +7,7 @@ import random
 # === Базовые настройки ===
 # API Центрального Банка РФ
 CURRENCY_API_URL = "https://www.cbr-xml-daily.ru/"
-CRYPTO_API_URL = "https://api.coincap.io/v2/assets"
+CRYPTO_API_URL = "https://api.coingecko.com/api/v3/simple/price"
 HEADERS = {"User-Agent": "SmartJerryBot/1.0"}
 
 
@@ -95,72 +95,66 @@ def get_currency_analysis():
         return f"💱 Анализ валют: Не удалось получить данные ЦБ РФ ({e})"
 
 
-# === Анализ криптовалют (оставлено без изменений) ===
+# === Анализ криптовалют (текущие цены) ===
 def get_crypto_analysis():
     """
-    Безопасная версия анализа криптовалют.
-    Использует надежное API CoinCap (без ограничений).
-    Возвращает краткий отчёт или сообщение об ошибке.
+    Получает текущие цены криптовалют (BTC, ETH, TON) с помощью CoinGecko API (один запрос).
     """
     try:
-        # Словарь криптовалют: ID в CoinCap -> (название, символ)
-        cryptos = {
-            "bitcoin": ("BTC", "₿"),
-            "ethereum": ("ETH", "Ξ"),
-            "toncoin": ("toncoin", "💎")
+        # Валюты, которые нам нужны (CoinGecko ID)
+        crypto_ids = "bitcoin,ethereum,the-open-network"
+
+        # Параметры для запроса: ID валют и цена в USD, а также 24h изменение
+        params = {
+            "ids": crypto_ids,
+            "vs_currencies": "usd",
+            "include_24hr_change": "true"
         }
 
-        prices = {}
+        resp = _http_get_with_retries(CRYPTO_API_URL, params=params, max_retries=2, backoff=0.5)
+        data = resp.json()
 
-        # Получаем цену каждой криптовалюты
-        for crypto_id, (name, symbol) in cryptos.items():
-            try:
-                resp = _http_get_with_retries(
-                    f"{CRYPTO_API_URL}/{crypto_id}",
-                    max_retries=2,
-                    backoff=0.5
-                )
-                data = resp.json()
+        if not data:
+            raise ValueError("Ответ CoinGecko API пуст или невалиден.")
 
-                if "data" in data and "priceUsd" in data["data"]:
-                    price_usd = float(data["data"]["priceUsd"])
-                    prices[name] = (price_usd, symbol)
+        lines = ["📈 Криптовалюты (текущие цены):"]
+        retrieved_count = 0
+
+        # Словарь для форматирования вывода
+        crypto_format = {
+            "bitcoin": ("BTC", "₿"),
+            "ethereum": ("ETH", "Ξ"),
+            "the-open-network": ("TON", "💎")
+        }
+
+        for crypto_id, (name, symbol) in crypto_format.items():
+            asset_data = data.get(crypto_id)
+
+            if asset_data and "usd" in asset_data:
+                price_usd = float(asset_data["usd"])
+
+                # Форматирование: без копеек для >$1000, с копейками для остальных
+                if price_usd >= 1000:
+                    formatted_price = f"{price_usd:,.0f}"
                 else:
-                    logging.warning(f"Нет данных для {crypto_id}")
+                    formatted_price = f"{price_usd:,.2f}"
 
-            except Exception as e:
-                logging.warning(f"Ошибка получения {crypto_id}: {e}")
-                continue
+                lines.append(f"{symbol} {name}: {formatted_price} USD")
+                retrieved_count += 1
+            else:
+                logging.warning(f"Данные о цене не найдены для {crypto_id} в CoinGecko.")
 
-        if not prices:
-            raise ValueError("Не удалось получить ни одной криптовалюты")
+        if retrieved_count == 0:
+            raise ValueError("Не удалось получить данные о криптовалютах")
 
-        # Формируем отчет
-        lines = ["📈 Анализ криптовалют (текущие цены):"]
-
-        if "BTC" in prices:
-            btc_price, btc_symbol = prices["BTC"]
-            lines.append(f"{btc_symbol} BTC: {btc_price:,.0f} USD")
-
-        if "ETH" in prices:
-            eth_price, eth_symbol = prices["ETH"]
-            lines.append(f"{eth_symbol} ETH: {eth_price:,.0f} USD")
-
-        if "toncoin" in prices:
-            ton_price, ton_symbol = prices["toncoin"]
-            lines.append(f"{ton_symbol} TON: {ton_price:,.2f} USD")
-
-        logging.info("Анализ криптовалют получен успешно (CoinCap API)")
+        logging.info("Анализ криптовалют получен успешно (CoinGecko API)")
         return "\n".join(lines)
 
+    except ConnectionError:
+        return "📈 Анализ криптовалют: Не удалось подключиться к CoinGecko API. Проверьте интернет."
     except Exception as e:
-        logging.error(f"Ошибка get_crypto_analysis: {e}")
-        return (
-            "📈 Анализ криптовалют:\n"
-            f"Не удалось получить данные. Ошибка: {e}\n"
-            "Проверь подключение или повтори позже."
-        )
-
+        logging.error(f"Критическая ошибка get_crypto_analysis: {e}")
+        return f"📈 Анализ криптовалют: Не удалось получить данные. Ошибка: {type(e).__name__}"  # Выводим только тип ошибки
 
 # === Текущие курсы валют ===
 def get_exchange_rates():
@@ -198,7 +192,6 @@ def get_exchange_rates():
     except Exception as e:
         logging.error(f"Ошибка get_exchange_rates (CBR): {e}")
         return f"💵 Курсы валют: Не удалось получить данные ЦБ РФ ({e})"
-
 
 # === Проверка курса валют за неделю ===
 def get_weekly_currency_summary():
@@ -247,46 +240,57 @@ def get_weekly_currency_summary():
         logging.error(f"Ошибка get_weekly_currency_summary (CBR): {e}")
         return "Не удалось получить недельный анализ валют ЦБ РФ."
 
-
-# === Проверка криптовалют за неделю (оставлено без изменений) ===
+# === Проверка криптовалют за неделю (Изменение за 24 часа) ===
 def get_weekly_crypto_summary():
     """
-    Возвращает краткий обзор криптовалют за неделю.
+    Возвращает краткий обзор изменения криптовалют за 24 часа с помощью CoinGecko API (один запрос).
     """
     try:
-        # CoinCap API предоставляет историю, но для простоты вернем текущий статус
-        # с процентным изменением за 24 часа
-        cryptos = {
-            "bitcoin": "BTC",
-            "ethereum": "ETH",
-            "toncoin": "TON"
+        crypto_ids = "bitcoin,ethereum,the-open-network"
+
+        # Параметры для запроса: ID валют и цена в USD, а также 24h изменение
+        params = {
+            "ids": crypto_ids,
+            "vs_currencies": "usd",
+            "include_24hr_change": "true"
         }
 
+        resp = _http_get_with_retries(CRYPTO_API_URL, params=params, max_retries=2, backoff=0.5)
+        data = resp.json()
+
+        if not data:
+            raise ValueError("Ответ CoinGecko API пуст или невалиден.")
+
         lines = ["📊 Криптовалюты (изменение за 24ч):"]
+        retrieved_count = 0
 
-        for crypto_id, name in cryptos.items():
-            try:
-                resp = _http_get_with_retries(
-                    f"{CRYPTO_API_URL}/{crypto_id}",
-                    max_retries=2,
-                    backoff=0.5
-                )
-                data = resp.json()
+        # Словарь для вывода
+        crypto_names = {
+            "bitcoin": "BTC",
+            "ethereum": "ETH",
+            "the-open-network": "TON"
+        }
 
-                if "data" in data:
-                    change_24h = float(data["data"].get("changePercent24Hr", 0))
-                    lines.append(f"{name}: {change_24h:+.2f}%")
+        for crypto_id, name in crypto_names.items():
+            asset_data = data.get(crypto_id)
 
-            except Exception as e:
-                logging.warning(f"Ошибка получения {crypto_id}: {e}")
-                continue
+            # Ключ для 24-часового изменения в CoinGecko: 'usd_24hr_change'
+            change_key = "usd_24hr_change"
 
-        if len(lines) == 1:
+            if asset_data and change_key in asset_data:
+                change_24h = float(asset_data[change_key])
+                lines.append(f"{name}: {change_24h:+.2f}%")
+                retrieved_count += 1
+            else:
+                lines.append(f"{name}: Нет данных за 24ч")
+
+        if retrieved_count == 0:
             raise ValueError("Не удалось получить данные о криптовалютах")
 
-        logging.info("Недельная сводка криптовалют получена успешно")
+        logging.info("Сводка криптовалют получена успешно (CoinGecko API)")
         return "\n".join(lines)
 
-    except Exception as e:
-        logging.error(f"Ошибка get_weekly_crypto_summary: {e}")
+    except ConnectionError:
+        return "📊 Криптовалюты: Не удалось подключиться к CoinGecko API. Проверьте интернет."
+    except Exception:
         return "Не удалось получить недельный анализ криптовалют."
