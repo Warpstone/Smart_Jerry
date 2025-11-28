@@ -27,6 +27,7 @@ from book_week_module import get_book_of_the_week_with_api
 # Конфигурация
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
 USER_CHAT_ID = '94476735'
+USER_CITY = 'Nha Trang, VN'
 
 # Логирование
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -48,7 +49,7 @@ async def send_morning_message():
 
         # Получаем все данные
         greeting = get_motivational_greeting()
-        weather = get_weather()
+        weather = get_weather(USER_CITY)
         exchange_rates = get_exchange_rates()
         currency_analysis = get_currency_analysis()
         crypto_analysis = get_crypto_analysis()

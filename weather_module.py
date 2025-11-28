@@ -6,28 +6,27 @@ from datetime import datetime
 
 # Конфигурация для погоды
 OW_API_KEY = '32820bd27cbe5240390b8e55a80c4ac5'
-CITY = 'Saint Petersburg,RU'
 
-def get_weather():
+def get_weather(city:str):
     """Получает текущую погоду и прогноз на завтра"""
     try:
-        print(f"[{datetime.now()}] Получаю погоду...")
-        # Получаем текущую погоду
-        current_weather = get_current_weather()
+        print(f"[{datetime.now()}] Получаю погоду {city}...")
+        # Передаем city дальше
+        current_weather = get_current_weather(city)
         # Получаем прогноз на завтра
-        tomorrow_weather = get_tomorrow_weather()
+        tomorrow_weather = get_tomorrow_weather(city)
         
-        print(f"[{datetime.now()}] Погода получена успешно")
+        print(f"[{datetime.now()}] Погода получена успешно {city}")
         return f"{current_weather}\n\n{tomorrow_weather}"
 
     except Exception as e:
         print(f"[{datetime.now()}] Ошибка при получении погоды: {e}")
         return f"🌤️ Не удалось получить актуальную погоду. Ошибка: {e}"
 
-def get_current_weather():
+def get_current_weather(city: str):
     """Получает текущую погоду"""
     try:
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={OW_API_KEY}&lang=ru&units=metric"
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={OW_API_KEY}&lang=ru&units=metric"
         response = requests.get(url, timeout=10)
         data = response.json()
 
@@ -45,15 +44,15 @@ def get_current_weather():
         else:
             mood = "🌡 Погода как погода. Главное — твое настроение!"
 
-        return f"🌤️ Сегодня в Питере {int(temp)} °C, {description}. {mood}"
+        return f"🌤️ Сегодня в Нячанге {int(temp)} °C, {description}. {mood}"
 
     except Exception as e:
         return f"Не удалось получить текущую погоду. Ошибка: {e}"
 
-def get_tomorrow_weather():
+def get_tomorrow_weather(city: str):
     """Получает прогноз погоды на завтра"""
     try:
-        url = f"http://api.openweathermap.org/data/2.5/forecast?q={CITY}&appid={OW_API_KEY}&lang=ru&units=metric"
+        url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={OW_API_KEY}&lang=ru&units=metric"
         response = requests.get(url, timeout=10)
         data = response.json()
 
@@ -78,7 +77,7 @@ def get_tomorrow_weather():
         else:
             forecast_mood = "🌡  Завтра погода будет интересной!"
 
-        return f"📅 Завтра в Питере: {int(temp)} °C, {description}. {forecast_mood}"
+        return f"📅 Завтра в Нячанге: {int(temp)} °C, {description}. {forecast_mood}"
 
     except Exception as e:
         return f"Не удалось получить прогноз на завтра. Ошибка: {e}"
