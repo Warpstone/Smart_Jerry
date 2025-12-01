@@ -23,6 +23,7 @@ from birthday_module import get_birthday_reminder
 from memorial_module import get_memorial_reminder
 from investment_module import get_investment_wisdom
 from book_week_module import get_book_of_the_week_with_api
+from daily_plan_module import get_daily_focus
 
 # Конфигурация
 TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
@@ -56,6 +57,7 @@ async def send_morning_message():
         investment_wisdom = get_investment_wisdom()
         birthday_reminder = get_birthday_reminder()
         memorial_reminder = get_memorial_reminder()
+        daily_focus = get_daily_focus()
 
         # Получаем книгу дня
         book_of_day = get_book_of_the_week_with_api()
@@ -72,6 +74,8 @@ async def send_morning_message():
 {crypto_analysis}
 
 {investment_wisdom}
+
+{daily_focus}
 
 {book_of_day}"""
 
