@@ -177,11 +177,11 @@ def get_book_of_the_week():
         book = random.choice(BOOKS_DATABASE[category])
         
         # Формируем сообщение
-        message = f"""📚 *Книга недели*
+        message = f"""📚 Книга недели
 
-*{book['title']}* - {book['author']}
-*Категория:* {category.title()}
-*Рейтинг:* {book['rating']}
+{book['title']} - {book['author']}
+Категория: {category.title()}
+Рейтинг: {book['rating']}
 
 {book['description']}
 
@@ -368,11 +368,11 @@ def get_book_of_the_week_with_api():
         source_type, book_data = random.choice(available_sources)
         
         # Формируем сообщение
-        message = f"""📚 *Книга недели*
+        message = f"""📚 Книга недели
 
-*{book_data['title']}* - {book_data['author']}
-*Категория:* {book_data['category']}
-*Рейтинг:* {book_data['rating']}
+{book_data['title']} - {book_data['author']}
+Категория: {book_data['category']}
+Рейтинг: {book_data['rating']}
 
 {book_data['description']}
 
