@@ -7,6 +7,7 @@ from datetime import datetime
 import traceback
 
 # Импорт модулей
+from Jerry import send_morning_message, send_weekly_summary
 from weather_module import get_weather
 from greetings_module import get_motivational_greeting
 from exchange_module import get_exchange_rates, get_currency_analysis, get_crypto_analysis, get_weekly_currency_summary, get_weekly_crypto_summary
@@ -223,7 +224,8 @@ scheduler = BlockingScheduler(timezone="Europe/Moscow")
 def safe_send_morning_message():
     """Безопасная отправка утреннего сообщения с обработкой исключений"""
     try:
-        send_morning_message()
+        import asyncio
+        asyncio.run(send_morning_message())
     except Exception as e:
         log_with_timestamp(f"КРИТИЧЕСКАЯ ОШИБКА в утреннем сообщении: {e}")
         log_with_timestamp(f"Трассировка: {traceback.format_exc()}")
@@ -237,7 +239,8 @@ def safe_send_morning_message():
 def safe_send_weekly_summary():
     """Безопасная отправка еженедельной сводки с обработкой исключений"""
     try:
-        send_weekly_summary()
+        import asyncio
+        asyncio.run(send_morning_message())
     except Exception as e:
         log_with_timestamp(f"КРИТИЧЕСКАЯ ОШИБКА в еженедельной сводке: {e}")
         log_with_timestamp(f"Трассировка: {traceback.format_exc()}")
