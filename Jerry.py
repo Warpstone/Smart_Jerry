@@ -91,7 +91,7 @@ async def send_morning_message():
             
             full_message += f"""
 
-📊 *ЕЖЕНЕДЕЛЬНАЯ СВОДКА ПО РЫНКУ*
+📊 ЕЖЕНЕДЕЛЬНАЯ СВОДКА ПО РЫНКУ
 
 {weekly_currency}
 
@@ -140,7 +140,7 @@ async def send_weekly_summary():
 
         weekly_message = f"""{greeting}
 
-📊 *ЕЖЕНЕДЕЛЬНАЯ СВОДКА ПО РЫНКУ*
+📊 ЕЖЕНЕДЕЛЬНАЯ СВОДКА ПО РЫНКУ
 
 {weekly_currency_summary}
 
