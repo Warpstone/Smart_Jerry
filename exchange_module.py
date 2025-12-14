@@ -7,8 +7,10 @@ import random
 # === Базовые настройки ===
 # API Центрального Банка РФ
 CURRENCY_API_URL = "https://www.cbr-xml-daily.ru/"
-# НОВЫЙ, НАДЕЖНЫЙ API для криптовалют (Coinbase V2)
-CRYPTO_API_URL = "https://api.coinbase.com/v2/"
+# НОВЫЙ API для ДНЕВНОГО отчета (CoinGecko Simple Price)
+CRYPTO_DAILY_API_URL = "https://api.coingecko.com/api/v3/simple/price"
+# API для НЕДЕЛЬНОГО отчета (CoinGecko Markets)
+CRYPTO_WEEKLY_API_URL = "https://api.coingecko.com/api/v3/coins/markets"
 HEADERS = {"User-Agent": "SmartJerryBot/1.0"}
 
 
@@ -25,6 +27,7 @@ def _get_historical_cbr_rates(date: datetime, max_days_back=7):
         try:
             resp = _http_get_with_retries(url, max_retries=2, backoff=0.8)
             valutes = resp.json().get("Valute", {})
+            # Проверяем, что в ответе есть данные о валютах, иначе это пустой день
             if valutes:
                 logging.info(f"Исторические данные ЦБ РФ получены за {date_str}")
                 return valutes
@@ -102,80 +105,75 @@ def get_currency_analysis():
         return f"💱 Анализ валют: Не удалось получить данные ЦБ РФ ({e})"
 
 
-# === НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ОБРАБОТКИ ДАННЫХ (Coinbase) ===
-def _fetch_and_process_crypto_data(url):
+# === НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ТЕКУЩЕЙ ЦЕНЫ (CoinGecko Simple Price) ===
+def _get_crypto_current_price(asset_ids: str):
+    """Получает текущие цены активов с CoinGecko Simple Price API."""
+
+    # asset_ids - это строка с id через запятую, например: "bitcoin,ethereum,the-open-network"
+    params = {
+        "ids": asset_ids,
+        "vs_currencies": "usd"
+    }
+
+    url = CRYPTO_DAILY_API_URL
+    resp = _http_get_with_retries(url, params=params, max_retries=2, backoff=0.5)
+
+    # Ответ имеет вид: {"bitcoin": {"usd": 65000}, "ethereum": {"usd": 4000}, ...}
+    return resp.json()
+
+
+# === ИСПРАВЛЕННЫЙ АНАЛИЗ КРИПТОВАЛЮТ (текущие цены - ДНЕВНОЙ ОТЧЕТ) ===
+def get_crypto_analysis():
     """
-    Функция для получения и форматирования текущих цен криптовалют
-    с Coinbase V2 API.
+    Получает текущие цены криптовалют (BTC, ETH, TON) через CoinGecko Simple Price API.
+    Эта функция предназначена для ежедневной сводки.
     """
-    # Маппинг для запросов и вывода: (API_Symbol, Display_Symbol, Display_Name)
-    crypto_map = [
-        ("BTC", "₿", "BTC"),
-        ("ETH", "Ξ", "ETH"),
-        ("TON", "💎", "TON"),
-    ]
+    # Mapping: CoinGecko Asset ID : (Display Name, Symbol)
+    crypto_map = {
+        "bitcoin": ("BTC", "₿"),
+        "ethereum": ("ETH", "Ξ"),
+        "the-open-network": ("TON", "💎"),
+    }
+
+    # Собираем ID для запроса в одну строку
+    asset_ids = ",".join(crypto_map.keys())
 
     lines = []
     retrieved_count = 0
 
-    for api_symbol, display_symbol, display_name in crypto_map:
-        # Формируем URL для запроса цены конкретной пары, например: /v2/prices/BTC-USD/spot
-        endpoint = f"prices/{api_symbol}-USD/spot"
-        full_url = url + endpoint
-
-        try:
-            # Делаем отдельный запрос для каждой монеты
-            resp = _http_get_with_retries(full_url, max_retries=2, backoff=0.5)
-            data = resp.json().get("data")
-
-            if not data or "amount" not in data:
-                logging.warning(f"Данные о цене не найдены для {display_name} в ответе Coinbase.")
-                continue
-
-            price_usd = float(data["amount"])
-
-            # Форматирование цены
-            if price_usd >= 1000:
-                # Для BTC и ETH
-                formatted_price = f"{price_usd:,.0f}"
-            else:
-                # Для TON
-                formatted_price = f"{price_usd:,.2f}"
-
-            lines.append(f"{display_symbol} {display_name}: {formatted_price} USD")
-            retrieved_count += 1
-
-        except Exception as e:
-            # Логируем ошибку для конкретной монеты, но продолжаем для других
-            logging.error(f"Ошибка получения цены {display_name} с Coinbase: {e}")
-            continue
-
-    if retrieved_count == 0:
-        raise ConnectionError("Не удалось получить данные ни для одной криптовалюты.")
-
-    return "\n".join(lines)
-
-
-# === Анализ криптовалют (текущие цены) ===
-def get_crypto_analysis():
-    """
-    Получает текущие цены криптовалют (BTC, ETH, TON) с помощью Coinbase API.
-    """
     try:
-        report = _fetch_and_process_crypto_data(CRYPTO_API_URL)
-        logging.info("Анализ криптовалют получен успешно (Coinbase API)")
-        return report
+        # Получаем все цены одним запросом
+        all_prices = _get_crypto_current_price(asset_ids)
+        logging.info("Текущие цены криптовалют получены успешно (CoinGecko Simple API)")
+
+        for asset_id, (name, symbol) in crypto_map.items():
+            # Извлекаем цену. Если данных нет, price_usd будет 0.0
+            price_usd = all_prices.get(asset_id, {}).get("usd", 0.0)
+
+            if price_usd > 0:
+                # Форматирование цены
+                formatted_price = f"{price_usd:,.2f}"
+                if price_usd >= 1000:
+                    formatted_price = f"{price_usd:,.0f}"
+
+                lines.append(f"{symbol} {name}: {formatted_price} USD")
+                retrieved_count += 1
+            else:
+                logging.warning(f"Не удалось получить цену для {name} из ответа CoinGecko Simple API.")
 
     except Exception as e:
-        logging.error(f"Критическая ошибка: Coinbase API не сработал: {type(e).__name__} - {e}")
+        logging.error(f"Критическая ошибка get_crypto_analysis (CoinGecko Simple): {e}")
+
+    if retrieved_count == 0:
         return "📊 Криптовалюты: Критический сбой API. Не удалось получить данные."
+
+    return "\n".join(lines)
 
 
 # === Текущие курсы валют (Без изменений) ===
 def get_exchange_rates():
     """Возвращает актуальные курсы валют ЦБ РФ."""
     try:
-        # CBR API: https://www.cbr-xml-daily.ru/daily_json.js
         resp = _http_get_with_retries(
             f"{CURRENCY_API_URL}daily_json.js",
             max_retries=2,
@@ -185,7 +183,6 @@ def get_exchange_rates():
         valutes = data.get("Valute", {})
 
         lines = ["💵 Курсы валют ЦБ РФ (к RUB):"]
-
         currency_codes = ["USD", "EUR", "CNY"]
 
         for code in currency_codes:
@@ -209,7 +206,7 @@ def get_exchange_rates():
         return f"💵 Курсы валют: Не удалось получить данные ЦБ РФ ({e})"
 
 
-# === Проверка курса валют за неделю (Фикс с ЦБ РФ уже включен) ===
+# === Проверка курса валют за неделю (Без изменений) ===
 def get_weekly_currency_summary():
     """
     Возвращает краткий обзор изменения курсов USD/EUR за неделю (ЦБ РФ).
@@ -227,6 +224,12 @@ def get_weekly_currency_summary():
 
         lines = ["📅 Изменения курсов ЦБ РФ за 7 дней (к RUB):"]
         currency_codes = ["USD", "EUR"]
+
+        # Если не удалось получить исторические данные
+        if not w_valutes:
+            for code in currency_codes:
+                lines.append(f"{code}: исторические данные недоступны")
+            return "\n".join(lines)
 
         for code in currency_codes:
             t_data = t_valutes.get(code)
@@ -247,7 +250,7 @@ def get_weekly_currency_summary():
             if w_rate > 0:
                 diff_pct = ((t_rate - w_rate) / w_rate) * 100
                 symbol = {"USD": "$", "EUR": "€"}.get(code, "")
-                lines.append(f"{code} {symbol} ({t_rate:.2f} RUB): {diff_pct:+.2f}%")  # Добавил \n
+                lines.append(f"{code} {symbol} ({t_rate:.2f} RUB): {diff_pct:+.2f}%")
             else:
                 lines.append(f"{code}: данные за неделю назад невалидны")
 
@@ -259,16 +262,69 @@ def get_weekly_currency_summary():
         return "Не удалось получить недельный анализ валют ЦБ РФ."
 
 
-# === Проверка криптовалют за неделю (Текущие цены) ===
+# === НЕДЕЛЬНАЯ СВОДКА ПО КРИПТОВАЛЮТАМ (Без изменений) ===
+def _get_crypto_weekly_change_coingecko():
+    """
+    Получает текущие цены и 7-дневное изменение с CoinGecko Markets API.
+    """
+    # CoinGecko ID для запроса
+    crypto_ids = "bitcoin,ethereum,the-open-network"
+
+    params = {
+        "vs_currency": "usd",
+        "ids": crypto_ids,
+        # Запрашиваем 7-дневное изменение цены
+        "price_change_percentage": "7d"
+    }
+
+    url = CRYPTO_WEEKLY_API_URL
+    resp = _http_get_with_retries(url, params=params, max_retries=2, backoff=0.5)
+    data_list = resp.json()
+
+    if not isinstance(data_list, list) or not data_list:
+        raise ValueError("Ответ CoinGecko Markets API пуст или невалиден.")
+
+    lines = []
+    symbol_map = {"btc": "₿", "eth": "Ξ", "ton": "💎"}
+
+    for item in data_list:
+        symbol = item.get('symbol', '').lower()
+
+        # Проверяем наличие всех нужных данных
+        price_today = item.get('current_price')
+        change_7d = item.get('price_change_percentage_7d_in_currency')
+
+        if price_today and change_7d is not None and symbol in symbol_map:
+            # Форматирование цены
+            formatted_price_today = f"{price_today:,.2f}"
+            if price_today >= 1000:
+                formatted_price_today = f"{price_today:,.0f}"
+
+            # Форматирование изменения
+            formatted_change = f"{change_7d:+.2f}%"
+
+            display_name = item.get('name').upper().replace('COIN', '')  # Очищаем имя
+            display_symbol = symbol_map.get(symbol, '')
+
+            lines.append(f"{display_symbol} {display_name} ({formatted_price_today} USD): {formatted_change}")
+
+    if not lines:
+        raise ValueError("Не удалось получить данные о недельном изменении для всех криптовалют.")
+
+    return "\n".join(lines)
+
+
 def get_weekly_crypto_summary():
     """
-    Возвращает краткий обзор текущих цен криптовалют (теперь используется Coinbase).
+    Возвращает краткий обзор изменения криптовалют за 7 дней
+    (использует CoinGecko Markets API).
     """
     try:
-        report = _fetch_and_process_crypto_data(CRYPTO_API_URL)
-        logging.info("Сводка криптовалют получена успешно (Coinbase API)")
-        return "📊 Криптовалюты (Текущие цены):\n" + report
+        report = _get_crypto_weekly_change_coingecko()
+        logging.info("Недельная сводка криптовалют получена успешно (CoinGecko Markets API)")
+        return "📊 Криптовалюты (изменение за 7 дней):\n" + report
 
     except Exception as e:
-        logging.error(f"Критическая ошибка: Coinbase API не сработал: {type(e).__name__} - {e}")
-        return "📊 Криптовалюты: Критический сбой API. Не удалось получить данные."
+        logging.error(f"Критическая ошибка: CoinGecko Markets API не сработал: {type(e).__name__} - {e}")
+        # Возвращаем сообщение об ошибке
+        return "📊 Криптовалюты: Критический сбой API. Не удалось получить данные для недельного отчета."
