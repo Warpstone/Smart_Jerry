@@ -17,19 +17,27 @@ CRYPTO_FALLBACK_API_URL = "https://api.coinmarketcap.com/data/v1/cryptocurrency/
 
 
 # === Вспомогательная функция для повторных запросов (Без изменений) ===
-def _get_historical_cbr_rates(date: datetime):
-    # ... (код без изменений) ...
-    # Правильный формат даты для архива ЦБ РФ: YYYY/MM/DD
-    date_str = date.strftime("%Y/%m/%d")
-    # Формат архива: https://www.cbr-xml-daily.ru/archive/YYYY/MM/DD/daily_json.js
-    url = f"{CURRENCY_API_URL}archive/{date_str}/daily_json.js"
-    try:
-        resp = _http_get_with_retries(url, max_retries=2, backoff=0.8)
-        # Если данные получены, возвращаем только секцию Valute
-        return resp.json().get("Valute", {})
-    except Exception as e:
-        logging.error(f"Ошибка получения исторических данных ЦБ за {date_str}: {e}")
-        return {}
+def _get_historical_cbr_rates(date: datetime, max_days_back=7):
+    current_date = date
+    for i in range(max_days_back):
+        # Правильный формат даты для архива ЦБ РФ: YYYY/MM/DD
+        date_str = current_date.strftime("%Y/%m/%d")
+        url = f"{CURRENCY_API_URL}archive/{date_str}/daily_json.js"
+        try:
+            resp = _http_get_with_retries(url, max_retries=2, backoff=0.8)
+            valutes = resp.json().get("Valute", {})
+            if valutes:
+                logging.info(f"Исторические данные ЦБ РФ получены за {date_str}")
+                return valutes
+        except Exception as e:
+            # Логируем ошибку, но пробуем предыдущий день
+            logging.warning(f"Ошибка получения данных ЦБ за {date_str}. Пробую предыдущий день. {e}")
+
+        # Сдвиг на предыдущий день
+        current_date = current_date - timedelta(days=1)
+
+    logging.error(f"Не удалось получить исторические данные ЦБ за {max_days_back} дней до {date.strftime('%Y-%m-%d')}")
+    return {}
 
 
 def _http_get_with_retries(url, params=None, max_retries=3, backoff=1.5):
@@ -278,20 +286,21 @@ def get_weekly_currency_summary():
         return "Не удалось получить недельный анализ валют ЦБ РФ."
 
 
-# === Проверка криптовалют за неделю - ДОБАВЛЕНА ЛОГИКА FALLBACK ===
 def get_weekly_crypto_summary():
     """
-    Возвращает краткий обзор изменения криптовалют за 24 часа,
-    с резервным подключением к другому API в случае сбоя.
+    Возвращает краткий обзор изменения криптовалют за 24 часа.
     """
-    # 1. Попытка получить данные от ОСНОВНОГО API (CoinGecko)
     try:
+        # Пытаемся получить данные только от ОСНОВНОГО API (CoinGecko)
         report = _fetch_and_process_crypto_data(CRYPTO_API_URL, include_24h_change=True)
         logging.info("Сводка криптовалют получена успешно (CoinGecko API)")
         return "📊 Криптовалюты (изменение за 24ч):\n" + report
 
     except Exception as e:
-        logging.warning(f"Ошибка CoinGecko API ({type(e).__name__}). Переключаюсь на резервный API.")
+        # Если сбой, просто возвращаем сообщение об ошибке
+        logging.error(f"Ошибка CoinGecko API: {type(e).__name__} - Не удалось получить данные.")
+        # Заменим "Критический сбой" на более мягкое сообщение
+        return "📊 Криптовалюты: Не удалось получить данные за 24 часа (сбой основного API)."
 
         # 2. Попытка получить данные от РЕЗЕРВНОГО API
         try:
