@@ -504,3 +504,10 @@
 [2025-12-19 15:25:58,120] \u041e\u0442\u043f\u0440\u0430\u0432\u043b\u044f\u044e \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0432 Telegram...
 [2025-12-19 15:25:59,297] HTTP Request: POST https://api.telegram.org/bot7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo/sendMessage "HTTP/1.1 200 OK"
 [2025-12-19 15:25:59,297] \u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e \u0443\u0441\u043f\u0435\u0448\u043d\u043e
+[2026-01-10 18:18:25,156] \u0417\u0430\u043f\u0443\u0441\u043a Jerry \u0432 \u0440\u0435\u0436\u0438\u043c\u0435: morning
+[2026-01-10 18:18:25,157] \u041d\u0430\u0447\u0438\u043d\u0430\u044e \u0443\u0442\u0440\u0435\u043d\u043d\u0435\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435...
+[2026-01-10 18:18:25,617] \u041f\u043e\u043f\u044b\u0442\u043a\u0430 1/3 \u043d\u0435 \u0443\u0434\u0430\u043b\u0430\u0441\u044c: HTTPSConnectionPool(host='www.cbr-xml-daily.ru', port=443): Max retries exceeded with url: /daily_json.js (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000277662A5160>: Failed to resolve 'www.cbr-xml-daily.ru' ([Errno 11001] getaddrinfo failed)"))
+[2026-01-10 18:18:29,318] \u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0438 \u0444\u0430\u043a\u0442\u0430 \u0438\u0437 Numbers API: name '_http_get_with_retries' is not defined
+[2026-01-10 18:18:29,318] \u041e\u0442\u043f\u0440\u0430\u0432\u043b\u044f\u044e \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0432 Telegram...
+[2026-01-10 18:18:30,086] HTTP Request: POST https://api.telegram.org/bot7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo/sendMessage "HTTP/1.1 200 OK"
+[2026-01-10 18:18:30,087] \u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e \u0443\u0441\u043f\u0435\u0448\u043d\u043e

@@ -19,6 +19,7 @@ from exchange_module import (
     get_weekly_currency_summary,
     get_weekly_crypto_summary,
 )
+from anniversary_module import get_anniversary_reminder
 from birthday_module import get_birthday_reminder
 from memorial_module import get_memorial_reminder
 from investment_module import get_investment_wisdom
@@ -58,6 +59,7 @@ async def send_morning_message():
         investment_wisdom = get_investment_wisdom()
         birthday_reminder = get_birthday_reminder()
         memorial_reminder = get_memorial_reminder()
+        anniversary_reminder = get_anniversary_reminder()
         daily_focus = get_daily_focus()
         daily_trivia = get_daily_trivia()
 
@@ -102,6 +104,9 @@ async def send_morning_message():
 
         if memorial_reminder:
             full_message += f"\n\n{memorial_reminder}"
+
+        if anniversary_reminder:
+            full_message += f"\n\n{anniversary_reminder}"
 
         # Финальное приветствие зависит от дня недели
         if is_sunday:
