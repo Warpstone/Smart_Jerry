@@ -20,6 +20,7 @@ from exchange_module import (
     get_weekly_crypto_summary,
 )
 from anniversary_module import get_anniversary_reminder
+from history_module import get_historical_events
 from birthday_module import get_birthday_reminder
 from memorial_module import get_memorial_reminder
 from investment_module import get_investment_wisdom
@@ -62,6 +63,7 @@ async def send_morning_message():
         anniversary_reminder = get_anniversary_reminder()
         daily_focus = get_daily_focus()
         daily_trivia = get_daily_trivia()
+        historical_events = get_historical_events(language='ru', count=2)  # или 'en' если хочешь на английском
 
         # Получаем книгу дня
         book_of_day = get_book_of_the_week_with_api()
@@ -84,6 +86,8 @@ async def send_morning_message():
 {book_of_day}
 
 {daily_trivia}"""
+
+        full_message += f"\n\n{historical_events}"
 
         # Добавляем еженедельную сводку по воскресеньям
         if is_sunday:
