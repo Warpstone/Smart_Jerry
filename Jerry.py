@@ -8,6 +8,7 @@ import logging
 import asyncio
 from datetime import datetime
 from telegram import Bot
+from dotenv import load_dotenv
 
 # Импорт модулей
 from weather_module import get_weather
@@ -28,10 +29,13 @@ from book_week_module import get_book_of_the_week_with_api
 from daily_plan_module import get_daily_focus
 from trivia_module import get_daily_trivia
 
+load_dotenv()
+
 # Конфигурация
-TELEGRAM_TOKEN = '7627055581:AAHtAlEKgbjhQYid8I-bUBul6UKqjFQAxFo'
-USER_CHAT_ID = '94476735'
-USER_CITY = 'Nha Trang, VN'
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+USER_CHAT_ID = os.getenv("USER_CHAT_ID")
+USER_CITY = os.getenv("USER_CITY")
+ALLOWED_USERS = [int(os.getenv("USER_CHAT_ID"))]
 
 # Логирование
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -44,6 +48,10 @@ bot = Bot(token=TELEGRAM_TOKEN)
 # ============================
 # УТРЕННЕЕ СООБЩЕНИЕ
 # ============================
+async def handle_message(update, context):
+    if update.effective_user.id not in ALLOWED_USERS:
+        return
+
 async def send_morning_message():
     """Отправляет утреннее сообщение"""
     try:
