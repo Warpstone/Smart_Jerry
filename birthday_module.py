@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=non-ascii-bytes
 
-from datetime import datetime, timedelta
 from datetime import date
 
 # Список дней рождения
@@ -63,7 +62,7 @@ def check_upcoming_birthdays(current_month, current_day):
         
         # Если день рождения уже прошел в этом году, берем следующий год
         if birthday_this_year < today:
-            birthday_next_year = datetime(today.year + 1, month, day)
+            birthday_next_year = date(today.year + 1, month, day)
             days_until = (birthday_next_year - today).days
         else:
             days_until = (birthday_this_year - today).days
