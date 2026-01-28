@@ -49,7 +49,7 @@ def check_birthday_today(month, day):
     """Проверяет, есть ли день рождения сегодня"""
     if (month, day) in BIRTHDAYS:
         name = BIRTHDAYS[(month, day)]
-        return f"🎂 Сегодня день рождения у {name}! Поздравь их!"
+        return f"🎂 Сегодня день рождения у {name}!"
     return None
 
 def check_upcoming_birthdays(current_month, current_day):
@@ -75,7 +75,7 @@ def check_upcoming_birthdays(current_month, current_day):
         elif days_until == 1:
             return f"📅 Завтра день рождения у {name}! Последний день для подготовки!"
         elif days_until == 0:
-            return f"🎂 Сегодня день рождения у {name}! Поздравь их!"
+            return f"🎂 Сегодня день рождения у {name}!"
         # Если дней больше 3, не показываем напоминание
     
     return None
