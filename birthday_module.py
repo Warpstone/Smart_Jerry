@@ -2,11 +2,12 @@
 # pylint: disable=non-ascii-bytes
 
 from datetime import datetime, timedelta
+from datetime import date
 
 # Список дней рождения
 BIRTHDAYS = {
-    (1, 24): "бабушка Люда (Аня)",
-    (1, 24): "Андрей Анатольевич, Анин папа",
+    (1, 24): ["бабушка Люда (Аня)",
+             "Андрей Анатольевич, Анин папа"],
     (1, 29): "Антон Павлович Чехов",
     (2, 4): "т. Галя",
     (2, 16): "Андрей, мч бабушки Люды",
@@ -29,7 +30,7 @@ BIRTHDAYS = {
 
 def get_birthday_reminder():
     """Проверяет дни рождения и возвращает напоминание"""
-    today = datetime.now()
+    today = date.today()
     current_month = today.month
     current_day = today.day
     
@@ -54,11 +55,11 @@ def check_birthday_today(month, day):
 
 def check_upcoming_birthdays(current_month, current_day):
     """Проверяет предстоящие дни рождения (только за 3 дня и ближе)"""
-    today = datetime.now()
+    today = date.today()
     
     for (month, day), name in BIRTHDAYS.items():
         # Создаем дату дня рождения в текущем году
-        birthday_this_year = datetime(today.year, month, day)
+        birthday_this_year = date(today.year, month, day)
         
         # Если день рождения уже прошел в этом году, берем следующий год
         if birthday_this_year < today:
